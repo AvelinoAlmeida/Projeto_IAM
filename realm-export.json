@@ -1,0 +1,293 @@
+{
+  "id": "iam-tp",
+  "realm": "iam-tp",
+  "displayName": "IAM Trabalho Prático",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "roles": {
+    "realm": [
+      {
+        "id": "role-admin",
+        "name": "admin",
+        "description": "Administrador com acesso total",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "iam-tp"
+      },
+      {
+        "id": "role-colaborador",
+        "name": "colaborador",
+        "description": "Colaborador com acesso a recursos internos",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "iam-tp"
+      },
+      {
+        "id": "role-visitante",
+        "name": "visitante",
+        "description": "Visitante com acesso apenas a recursos públicos",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "iam-tp"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "id": "group-admins",
+      "name": "Admins",
+      "path": "/Admins",
+      "realmRoles": ["admin"]
+    },
+    {
+      "id": "group-colaboradores",
+      "name": "Colaboradores",
+      "path": "/Colaboradores",
+      "realmRoles": ["colaborador"]
+    },
+    {
+      "id": "group-visitantes",
+      "name": "Visitantes",
+      "path": "/Visitantes",
+      "realmRoles": ["visitante"]
+    }
+  ],
+  "users": [
+    {
+      "id": "user-admin-1",
+      "username": "admin.user",
+      "email": "admin@iam-tp.local",
+      "firstName": "Admin",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": ["admin"],
+      "groups": ["/Admins"],
+      "requiredActions": ["CONFIGURE_TOTP"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Admin@1234",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "user-colab-1",
+      "username": "colaborador.user",
+      "email": "colaborador@iam-tp.local",
+      "firstName": "Colaborador",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": ["colaborador"],
+      "groups": ["/Colaboradores"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Colab@1234",
+          "temporary": false
+        }
+      ]
+    },
+    {
+      "id": "user-visit-1",
+      "username": "visitante.user",
+      "email": "visitante@iam-tp.local",
+      "firstName": "Visitante",
+      "lastName": "User",
+      "enabled": true,
+      "emailVerified": true,
+      "realmRoles": ["visitante"],
+      "groups": ["/Visitantes"],
+      "credentials": [
+        {
+          "type": "password",
+          "value": "Visit@1234",
+          "temporary": false
+        }
+      ]
+    }
+  ],
+  "clients": [
+    {
+      "id": "client-fastapi",
+      "clientId": "fastapi-client",
+      "name": "FastAPI Application",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "change-me-client-secret",
+      "redirectUris": [
+        "http://localhost:8000/*",
+        "http://localhost:8000/auth/callback"
+      ],
+      "webOrigins": ["http://localhost:8000"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:8000/*"
+      },
+      "protocolMappers": [
+        {
+          "id": "mapper-realm-roles",
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+  "eventsEnabled": true,
+  "eventsExpiration": 2592000,
+  "eventsListeners": ["jboss-logging"],
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR",
+    "LOGOUT",
+    "LOGOUT_ERROR",
+    "REGISTER",
+    "UPDATE_TOTP",
+    "UPDATE_TOTP_ERROR",
+    "REMOVE_TOTP",
+    "SEND_RESET_PASSWORD",
+    "UPDATE_PASSWORD",
+    "UPDATE_PASSWORD_ERROR",
+    "CLIENT_LOGIN",
+    "CLIENT_LOGIN_ERROR",
+    "TOKEN_EXCHANGE",
+    "REFRESH_TOKEN",
+    "REFRESH_TOKEN_ERROR",
+    "CODE_TO_TOKEN",
+    "CODE_TO_TOKEN_ERROR"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
+  "browserFlow": "browser-mfa",
+  "authenticationFlows": [
+    {
+      "id": "flow-browser-mfa",
+      "alias": "browser-mfa",
+      "description": "Browser flow com MFA obrigatório para admins",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-spnego",
+          "requirement": "DISABLED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "requirement": "ALTERNATIVE",
+          "priority": 25,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "flowAlias": "browser-mfa forms",
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "id": "flow-browser-mfa-forms",
+      "alias": "browser-mfa forms",
+      "description": "Username, password e OTP condicional",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "flowAlias": "browser-mfa otp",
+          "userSetupAllowed": false,
+          "autheticatorFlow": true
+        }
+      ]
+    },
+    {
+      "id": "flow-browser-mfa-otp",
+      "alias": "browser-mfa otp",
+      "description": "OTP condicional",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
+    }
+  ],
+  "defaultDefaultClientScopes": [
+    "web-origins",
+    "acr",
+    "profile",
+    "roles",
+    "basic",
+    "email"
+  ],
+  "defaultOptionalClientScopes": [
+    "offline_access",
+    "address",
+    "phone",
+    "microprofile-jwt"
+  ]
+}
