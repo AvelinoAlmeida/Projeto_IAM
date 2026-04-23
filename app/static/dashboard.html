@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IAM TP — Gestão de Identidade</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: #0f1117; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
+  .tab-active { background: #1e40af; color: #fff; border-bottom: 2px solid #3b82f6; }
+  .tab-inactive { color: #94a3b8; }
+  .tab-inactive:hover { color: #e2e8f0; background: #1e293b; }
+  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; }
+  .badge-admin { background: #dc2626; color: #fff; }
+  .badge-colaborador { background: #2563eb; color: #fff; }
+  .badge-visitante { background: #059669; color: #fff; }
+  .badge-none { background: #475569; color: #fff; }
+  .result-ok { background: #052e16; border: 1px solid #16a34a; color: #4ade80; }
+  .result-err { background: #2d0000; border: 1px solid #dc2626; color: #f87171; }
+  .result-warn { background: #1c1400; border: 1px solid #ca8a04; color: #facc15; }
+  .input { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 8px 12px; width: 100%; }
+  .input:focus { outline: none; border-color: #3b82f6; }
+  .btn-primary { background: #2563eb; color: #fff; border-radius: 8px; padding: 8px 18px; font-weight: 600; transition: background 0.15s; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-primary:disabled { background: #1e40af; opacity: 0.5; cursor: not-allowed; }
+  .btn-danger { background: #dc2626; color: #fff; border-radius: 8px; padding: 8px 18px; font-weight: 600; transition: background 0.15s; }
+  .btn-danger:hover { background: #b91c1c; }
+  .btn-success { background: #059669; color: #fff; border-radius: 8px; padding: 8px 18px; font-weight: 600; transition: background 0.15s; }
+  .btn-success:hover { background: #047857; }
+  .btn-ghost { background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; padding: 8px 18px; font-weight: 600; transition: all 0.15s; }
+  .btn-ghost:hover { border-color: #3b82f6; color: #e2e8f0; }
+  pre { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 12px; line-height: 1.6; }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .pulse { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  select { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 8px 12px; }
+  select:focus { outline: none; border-color: #3b82f6; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 10px 12px; background: #0f172a; color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { padding: 10px 12px; border-top: 1px solid #1e293b; font-size: 14px; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .bar { background: #2563eb; height: 20px; border-radius: 4px; transition: width 0.5s ease; min-width: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div style="background: #0f1117; border-bottom: 1px solid #1e293b; padding: 0 24px;">
+  <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/><path d="M12 12v4m0 0h3m-3 0H9"/></svg>
+      <span style="font-size:18px;font-weight:700;color:#f1f5f9;">IAM TP</span>
+      <span style="font-size:13px;color:#475569;">Gestão de Identidade · MEI · ESTG-IPP</span>
+    </div>
+    <div id="header-user" style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12px;color:#475569;" id="status-indicator">
+        <span class="pulse" style="display:inline-block;width:8px;height:8px;background:#10b981;border-radius:50%;margin-right:6px;"></span>API online
+      </span>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div style="background:#0f1117; border-bottom:1px solid #1e293b; padding: 0 24px;">
+  <div style="max-width:1200px; margin:0 auto; display:flex; gap:2px;">
+    <button class="tab-active" id="tab-auth" onclick="showTab('auth')" style="padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;">
+      🔐 Autenticação
+    </button>
+    <button class="tab-inactive" id="tab-rbac" onclick="showTab('rbac')" style="padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;">
+      🛡️ Autorização
+    </button>
+    <button class="tab-inactive" id="tab-jml" onclick="showTab('jml')" style="padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;">
+      👥 JML
+    </button>
+    <button class="tab-inactive" id="tab-audit" onclick="showTab('audit')" style="padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;">
+      📋 Auditoria
+    </button>
+    <button class="tab-inactive" id="tab-arch" onclick="showTab('arch')" style="padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;">
+      🏗️ Arquitetura
+    </button>
+  </div>
+</div>
+
+<div style="max-width:1200px; margin:0 auto; padding:24px;">
+
+<!-- ===================== TAB: AUTENTICAÇÃO ===================== -->
+<div id="page-auth">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    <!-- Login Form -->
+    <div class="card" style="padding:24px;">
+      <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;color:#f1f5f9;">Login via Keycloak (OIDC)</h2>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Utilizador de teste</label>
+        <select id="user-preset" onchange="applyPreset()" style="width:100%">
+          <option value="">— Selecionar —</option>
+          <option value="admin.user|Admin@1234">admin.user (Admin@1234) · role: admin</option>
+          <option value="colaborador.user|Colab@1234">colaborador.user (Colab@1234) · role: colaborador</option>
+          <option value="visitante.user|Visit@1234">visitante.user (Visit@1234) · role: visitante</option>
+          <option value="custom">Outro utilizador...</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username</label>
+        <input class="input" id="login-username" type="text" placeholder="username">
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Password</label>
+        <input class="input" id="login-password" type="password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-primary" id="btn-login" onclick="doLogin()" style="flex:1;">Entrar via Keycloak</button>
+        <button class="btn-ghost" onclick="doLogout()" id="btn-logout" style="display:none;">Sair</button>
+      </div>
+      <div id="login-result" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Token Info -->
+    <div class="card" style="padding:24px;">
+      <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;color:#f1f5f9;">Sessão Atual</h2>
+      <div id="session-empty" style="text-align:center;padding:32px;color:#475569;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" style="margin:0 auto 12px;display:block;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <p style="font-size:14px;">Sem sessão ativa. Faça login para começar.</p>
+      </div>
+      <div id="session-info" style="display:none;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px;background:#0f172a;border-radius:8px;">
+          <div style="width:40px;height:40px;background:#1e40af;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;" id="avatar-letter">A</div>
+          <div>
+            <div style="font-weight:600;color:#f1f5f9;" id="sess-username">—</div>
+            <div style="font-size:12px;color:#64748b;" id="sess-email">—</div>
+          </div>
+          <span id="sess-role-badge" class="badge-admin" style="margin-left:auto;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">admin</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div style="background:#0f172a;padding:10px;border-radius:8px;">
+            <div style="font-size:11px;color:#475569;margin-bottom:2px;">Subject (sub)</div>
+            <div style="font-size:11px;color:#94a3b8;word-break:break-all;" id="sess-sub">—</div>
+          </div>
+          <div style="background:#0f172a;padding:10px;border-radius:8px;">
+            <div style="font-size:11px;color:#475569;margin-bottom:2px;">Expira em</div>
+            <div style="font-size:14px;font-weight:600;color:#4ade80;" id="sess-expiry">—</div>
+          </div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <div style="font-size:12px;color:#64748b;margin-bottom:6px;">Roles (realm_access.roles)</div>
+          <div id="sess-roles" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        </div>
+        <details style="margin-top:12px;">
+          <summary style="font-size:12px;color:#475569;cursor:pointer;">Ver JWT payload completo</summary>
+          <pre id="sess-payload" style="margin-top:8px;font-size:11px;max-height:200px;overflow-y:auto;"></pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flow diagram -->
+  <div class="card" style="padding:24px;margin-top:24px;">
+    <h2 style="font-size:14px;font-weight:700;margin-bottom:16px;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Fluxo de Autenticação OIDC</h2>
+    <div style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;padding:8px 0;">
+      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
+        <div style="font-size:20px;">🖥️</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Dashboard<br><span style="color:#475569;">localhost:8000</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;margin:0 8px;">
+        <div style="font-size:10px;color:#3b82f6;margin-bottom:2px;">POST /auth/token</div>
+        <div style="width:60px;height:2px;background:linear-gradient(to right,#3b82f6,#1d4ed8);"></div>
+        <div style="font-size:10px;color:#64748b;margin-top:2px;">username+password</div>
+      </div>
+      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
+        <div style="font-size:20px;">⚡</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">FastAPI<br><span style="color:#475569;">:8000</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;margin:0 8px;">
+        <div style="font-size:10px;color:#8b5cf6;margin-bottom:2px;">ROPC grant</div>
+        <div style="width:60px;height:2px;background:linear-gradient(to right,#8b5cf6,#7c3aed);"></div>
+        <div style="font-size:10px;color:#64748b;margin-top:2px;">internal Docker</div>
+      </div>
+      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
+        <div style="font-size:20px;">🔑</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Keycloak<br><span style="color:#475569;">:8081</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;margin:0 8px;">
+        <div style="font-size:10px;color:#10b981;margin-bottom:2px;">JWT (RS256)</div>
+        <div style="width:60px;height:2px;background:linear-gradient(to right,#10b981,#059669);"></div>
+        <div style="font-size:10px;color:#64748b;margin-top:2px;">access_token</div>
+      </div>
+      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
+        <div style="font-size:20px;">🖥️</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Dashboard<br><span style="color:#475569;">armazena token</span></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ Token assinado RS256 (JWKS)</span>
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ Claims: sub · email · roles</span>
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ MFA (TOTP) para admin</span>
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ Realm: iam-tp</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TAB: AUTORIZAÇÃO ===================== -->
+<div id="page-rbac" style="display:none;">
+  <div class="card" style="padding:24px;margin-bottom:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Controlo de Acesso (RBAC)</h2>
+      <button class="btn-primary" onclick="testAll()">Testar Todos os Endpoints</button>
+    </div>
+    <div id="no-token-rbac" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
+      ⚠️ Sem token ativo. Faça login na tab Autenticação primeiro.
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Método</th>
+          <th>Endpoint</th>
+          <th>Role necessária</th>
+          <th>Resultado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="endpoints-table"></tbody>
+    </table>
+  </div>
+
+  <div class="card" style="padding:24px;">
+    <h2 style="font-size:14px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:16px;">Matriz de Acesso por Role</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Endpoint</th>
+          <th style="text-align:center;color:#dc2626;">admin</th>
+          <th style="text-align:center;color:#2563eb;">colaborador</th>
+          <th style="text-align:center;color:#059669;">visitante</th>
+          <th style="text-align:center;color:#475569;">anónimo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /public</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /me</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">❌</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /colaborador/data</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /colaborador/perfil</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/users</code></td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/audit</code></td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===================== TAB: JML ===================== -->
+<div id="page-jml" style="display:none;">
+  <div id="no-admin-jml" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
+    ⚠️ Esta área requer role <strong>admin</strong>. Faça login como <code>admin.user</code>.
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+    <!-- Joiner -->
+    <div class="card" style="padding:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <span style="font-size:20px;">➕</span>
+        <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Joiner — Criar Utilizador</h2>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username</label>
+        <input class="input" id="j-username" type="text" placeholder="ex: joao.silva">
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Email</label>
+        <input class="input" id="j-email" type="email" placeholder="ex: joao@empresa.pt">
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Role</label>
+        <select id="j-role" style="width:100%">
+          <option value="colaborador">colaborador</option>
+          <option value="visitante">visitante</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Password inicial (temporária)</label>
+        <input class="input" id="j-password" type="text" value="Temp@1234">
+      </div>
+      <button class="btn-success" onclick="doJoiner()" style="width:100%;">Criar utilizador no Keycloak</button>
+      <div id="joiner-result" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- Mover -->
+    <div class="card" style="padding:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <span style="font-size:20px;">🔄</span>
+        <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Mover — Alterar Role</h2>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username</label>
+        <input class="input" id="m-username" type="text" placeholder="username existente">
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Role atual (old)</label>
+        <select id="m-old-role" style="width:100%">
+          <option value="colaborador">colaborador</option>
+          <option value="visitante">visitante</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nova role (new)</label>
+        <select id="m-new-role" style="width:100%">
+          <option value="admin">admin</option>
+          <option value="colaborador">colaborador</option>
+          <option value="visitante">visitante</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="doMover()" style="width:100%;">Mover + Revogar sessões</button>
+      <div id="mover-result" style="margin-top:10px;"></div>
+      <div style="margin-top:10px;padding:10px;background:#0f172a;border-radius:8px;font-size:12px;color:#475569;">
+        ℹ️ As sessões ativas são revogadas imediatamente — o utilizador é forçado a fazer login novamente com a nova role.
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaver -->
+  <div class="card" style="padding:24px;margin-bottom:24px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+      <span style="font-size:20px;">🚫</span>
+      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Leaver — Desativar Utilizador</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
+      <div>
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username a desativar</label>
+        <input class="input" id="l-username" type="text" placeholder="username">
+      </div>
+      <button class="btn-danger" onclick="doLeaver()">Desativar + Revogar sessões</button>
+    </div>
+    <div id="leaver-result" style="margin-top:10px;"></div>
+    <div style="margin-top:10px;padding:10px;background:#0f172a;border-radius:8px;font-size:12px;color:#475569;">
+      ⚠️ O utilizador fica <code>enabled=false</code>, todas as roles são removidas e as sessões revogadas. O login falha imediatamente.
+    </div>
+  </div>
+
+  <!-- Users list -->
+  <div class="card" style="padding:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Utilizadores no Keycloak</h2>
+      <button class="btn-ghost" onclick="loadUsers()" style="font-size:13px;padding:6px 14px;">↻ Atualizar</button>
+    </div>
+    <div id="users-list"><p style="color:#475569;font-size:14px;">A carregar...</p></div>
+  </div>
+</div>
+
+<!-- ===================== TAB: AUDITORIA ===================== -->
+<div id="page-audit" style="display:none;">
+  <div id="no-admin-audit" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
+    ⚠️ Esta área requer role <strong>admin</strong>. Faça login como <code>admin.user</code>.
+  </div>
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px;">
+    <!-- Events table -->
+    <div class="card" style="padding:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Eventos de Utilizador</h2>
+        <div style="display:flex;gap:8px;">
+          <select id="audit-filter" style="font-size:13px;padding:6px 10px;">
+            <option value="">Todos os tipos</option>
+            <option value="LOGIN">LOGIN</option>
+            <option value="LOGIN_ERROR">LOGIN_ERROR</option>
+            <option value="LOGOUT">LOGOUT</option>
+            <option value="TOKEN_EXCHANGE">TOKEN_EXCHANGE</option>
+            <option value="CODE_TO_TOKEN">CODE_TO_TOKEN</option>
+            <option value="REFRESH_TOKEN">REFRESH_TOKEN</option>
+            <option value="UPDATE_PASSWORD">UPDATE_PASSWORD</option>
+            <option value="UPDATE_TOTP">UPDATE_TOTP</option>
+          </select>
+          <button class="btn-ghost" onclick="loadAudit()" style="font-size:13px;padding:6px 14px;">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="audit-table-wrap" style="max-height:400px;overflow-y:auto;">
+        <p style="color:#475569;font-size:14px;">A carregar eventos...</p>
+      </div>
+    </div>
+
+    <!-- Summary chart -->
+    <div class="card" style="padding:24px;">
+      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;">Resumo por Tipo</h2>
+      <div id="audit-chart"><p style="color:#475569;font-size:14px;">A carregar...</p></div>
+    </div>
+  </div>
+
+  <!-- Admin events -->
+  <div class="card" style="padding:24px;">
+    <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;">Eventos Administrativos (JML)</h2>
+    <div id="admin-events-wrap" style="max-height:300px;overflow-y:auto;">
+      <p style="color:#475569;font-size:14px;">A carregar eventos admin...</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== TAB: ARQUITETURA ===================== -->
+<div id="page-arch" style="display:none;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+
+    <!-- Diagram -->
+    <div class="card" style="padding:24px;">
+      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:20px;">Diagrama de Arquitetura</h2>
+      <svg viewBox="0 0 480 320" style="width:100%;background:#0f172a;border-radius:8px;padding:8px;">
+        <!-- Browser -->
+        <rect x="20" y="130" width="80" height="60" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+        <text x="60" y="156" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">Browser</text>
+        <text x="60" y="170" text-anchor="middle" fill="#475569" font-size="9">Dashboard</text>
+        <text x="60" y="182" text-anchor="middle" fill="#475569" font-size="9">:8000</text>
+
+        <!-- FastAPI -->
+        <rect x="190" y="100" width="100" height="70" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+        <text x="240" y="126" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">FastAPI</text>
+        <text x="240" y="140" text-anchor="middle" fill="#475569" font-size="9">RBAC + JWT</text>
+        <text x="240" y="153" text-anchor="middle" fill="#475569" font-size="9">validation</text>
+        <text x="240" y="166" text-anchor="middle" fill="#10b981" font-size="9">:8000</text>
+
+        <!-- Keycloak -->
+        <rect x="190" y="220" width="100" height="70" rx="6" fill="#1e293b" stroke="#8b5cf6" stroke-width="1.5"/>
+        <text x="240" y="246" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">Keycloak 26</text>
+        <text x="240" y="260" text-anchor="middle" fill="#475569" font-size="9">OIDC / SSO</text>
+        <text x="240" y="273" text-anchor="middle" fill="#475569" font-size="9">Admin API</text>
+        <text x="240" y="286" text-anchor="middle" fill="#8b5cf6" font-size="9">:8081</text>
+
+        <!-- PostgreSQL -->
+        <rect x="370" y="220" width="90" height="70" rx="6" fill="#1e293b" stroke="#0ea5e9" stroke-width="1.5"/>
+        <text x="415" y="246" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">PostgreSQL</text>
+        <text x="415" y="260" text-anchor="middle" fill="#475569" font-size="9">Keycloak DB</text>
+        <text x="415" y="273" text-anchor="middle" fill="#475569" font-size="9">user store</text>
+        <text x="415" y="286" text-anchor="middle" fill="#0ea5e9" font-size="9">:5432</text>
+
+        <!-- Browser → FastAPI -->
+        <line x1="100" y1="160" x2="190" y2="140" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="142" y="143" text-anchor="middle" fill="#3b82f6" font-size="8">Bearer JWT</text>
+
+        <!-- FastAPI ↔ Keycloak (JWKS) -->
+        <line x1="240" y1="170" x2="240" y2="220" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr)"/>
+        <text x="254" y="200" fill="#10b981" font-size="8">JWKS / Admin</text>
+
+        <!-- Keycloak → PostgreSQL -->
+        <line x1="290" y1="255" x2="370" y2="255" stroke="#0ea5e9" stroke-width="1.5" marker-end="url(#arr)"/>
+        <text x="328" y="248" text-anchor="middle" fill="#0ea5e9" font-size="8">JDBC</text>
+
+        <!-- JML label -->
+        <rect x="360" y="100" width="110" height="60" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
+        <text x="415" y="120" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="bold">JML Scripts</text>
+        <text x="415" y="133" text-anchor="middle" fill="#475569" font-size="8">Joiner</text>
+        <text x="415" y="145" text-anchor="middle" fill="#475569" font-size="8">Mover</text>
+        <text x="415" y="157" text-anchor="middle" fill="#475569" font-size="8">Leaver</text>
+        <line x1="370" y1="130" x2="290" y2="255" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr2)"/>
+
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#475569"/>
+          </marker>
+          <marker id="arr2" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#f59e0b"/>
+          </marker>
+        </defs>
+      </svg>
+    </div>
+
+    <!-- Evaluation checklist -->
+    <div class="card" style="padding:24px;">
+      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;">Critérios de Avaliação (0–20)</h2>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #10b981;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">Arquitetura e coerência técnica</div>
+            <div style="font-size:11px;color:#475569;">Keycloak + FastAPI + PostgreSQL · Docker Compose · realm-export.json</div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#10b981;">20%</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #3b82f6;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">Autenticação / Federação</div>
+            <div style="font-size:11px;color:#475569;">OIDC via Keycloak · JWT RS256 · claims: sub, email, roles</div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#3b82f6;">15%</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #6366f1;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">Autorização (RBAC)</div>
+            <div style="font-size:11px;color:#475569;">3 roles · endpoints protegidos · 200/403 demonstrável</div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#6366f1;">15%</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #f59e0b;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">JML (Joiner · Mover · Leaver)</div>
+            <div style="font-size:11px;color:#475569;">Via Keycloak Admin REST API · revogação de sessões</div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#f59e0b;">15%</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #ec4899;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">MFA (TOTP via Keycloak)</div>
+            <div style="font-size:11px;color:#475569;">admin.user → CONFIGURE_TOTP required · browser-mfa flow</div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#ec4899;">15%</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #14b8a6;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">Auditoria e segurança</div>
+            <div style="font-size:11px;color:#475569;">Keycloak events · LOGIN/LOGOUT/ERRORS · admin events</div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#14b8a6;">10%</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #64748b;">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">Qualidade da demonstração</div>
+            <div style="font-size:11px;color:#475569;">Este dashboard · demo ao vivo · 10 minutos</div>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:#64748b;">10%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stack info + MFA instructions -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+    <div class="card" style="padding:24px;">
+      <h2 style="font-size:14px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:16px;">Stack Técnica</h2>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
+          <span style="font-size:13px;color:#94a3b8;">Keycloak</span><span style="font-size:13px;color:#8b5cf6;font-weight:600;">26.2.5</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
+          <span style="font-size:13px;color:#94a3b8;">PostgreSQL</span><span style="font-size:13px;color:#0ea5e9;font-weight:600;">16-alpine</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
+          <span style="font-size:13px;color:#94a3b8;">Python</span><span style="font-size:13px;color:#f59e0b;font-weight:600;">3.12-slim</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
+          <span style="font-size:13px;color:#94a3b8;">FastAPI</span><span style="font-size:13px;color:#10b981;font-weight:600;">0.115.12</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
+          <span style="font-size:13px;color:#94a3b8;">JWT lib</span><span style="font-size:13px;color:#3b82f6;font-weight:600;">python-jose 3.3.0</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
+          <span style="font-size:13px;color:#94a3b8;">Algoritmo</span><span style="font-size:13px;color:#ec4899;font-weight:600;">RS256 (JWKS)</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
+          <span style="font-size:13px;color:#94a3b8;">Realm</span><span style="font-size:13px;color:#f1f5f9;font-weight:600;">iam-tp</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="padding:24px;">
+      <h2 style="font-size:14px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:16px;">Setup MFA — admin.user</h2>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:#0f172a;border-radius:6px;">
+          <span style="background:#1e40af;color:#fff;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">1</span>
+          <span style="font-size:13px;color:#94a3b8;">Abrir <code style="color:#3b82f6;">http://localhost:8081</code> → <em>Realm iam-tp</em></span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:#0f172a;border-radius:6px;">
+          <span style="background:#1e40af;color:#fff;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">2</span>
+          <span style="font-size:13px;color:#94a3b8;">Login como <code style="color:#3b82f6;">admin.user / Admin@1234</code> → o Keycloak pede setup TOTP</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:#0f172a;border-radius:6px;">
+          <span style="background:#1e40af;color:#fff;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">3</span>
+          <span style="font-size:13px;color:#94a3b8;">Scan QR code com <strong>Google Authenticator</strong> ou <strong>Authy</strong></span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:#0f172a;border-radius:6px;">
+          <span style="background:#1e40af;color:#fff;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">4</span>
+          <span style="font-size:13px;color:#94a3b8;">Inserir o OTP de 6 dígitos → TOTP configurado ✅</span>
+        </div>
+        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:#0f172a;border-radius:6px;">
+          <span style="background:#1e40af;color:#fff;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">5</span>
+          <span style="font-size:13px;color:#94a3b8;">Próximos logins pedem: password + OTP (browser-mfa flow)</span>
+        </div>
+      </div>
+      <div style="margin-top:12px;padding:10px;background:#052e16;border:1px solid #16a34a;border-radius:6px;font-size:12px;color:#4ade80;">
+        ✅ <code>admin.user</code> tem <code>CONFIGURE_TOTP</code> como Required Action no realm-export.json
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end main container -->
+
+<script>
+const API = '';
+let currentToken = null;
+let currentUser = null;
+let tokenExpiry = null;
+let expiryInterval = null;
+
+const ENDPOINTS = [
+  { method:'GET', path:'/health',            role:'—',               desc:'Health check' },
+  { method:'GET', path:'/public',            role:'—',               desc:'Recurso público' },
+  { method:'GET', path:'/me',                role:'qualquer token',  desc:'Claims do utilizador' },
+  { method:'GET', path:'/colaborador/data',  role:'colaborador | admin', desc:'Dados colaborador' },
+  { method:'GET', path:'/colaborador/perfil',role:'colaborador | admin', desc:'Perfil colaborador' },
+  { method:'GET', path:'/admin/users',       role:'admin',           desc:'Lista utilizadores' },
+  { method:'GET', path:'/admin/audit',       role:'admin',           desc:'Eventos de auditoria' },
+  { method:'GET', path:'/admin/audit/summary',role:'admin',          desc:'Resumo de auditoria' },
+];
+
+function showTab(name) {
+  ['auth','rbac','jml','audit','arch'].forEach(t => {
+    document.getElementById('page-'+t).style.display = t===name ? '' : 'none';
+    const btn = document.getElementById('tab-'+t);
+    btn.className = t===name ? 'tab-active' : 'tab-inactive';
+    btn.style.cssText = 'padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;';
+  });
+  if (name==='rbac') renderEndpointsTable();
+  if (name==='jml')  { checkAdminGuard('no-admin-jml'); loadUsers(); }
+  if (name==='audit'){ checkAdminGuard('no-admin-audit'); loadAudit(); }
+}
+
+function applyPreset() {
+  const val = document.getElementById('user-preset').value;
+  if (!val || val==='custom') return;
+  const [u,p] = val.split('|');
+  document.getElementById('login-username').value = u;
+  document.getElementById('login-password').value = p;
+}
+
+async function doLogin() {
+  const btn = document.getElementById('btn-login');
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const resultEl = document.getElementById('login-result');
+  if (!username || !password) { showResult(resultEl, '❌ Preenche username e password.', 'err'); return; }
+
+  btn.innerHTML = '<span class="spinner"></span> A autenticar...';
+  btn.disabled = true;
+  try {
+    const r = await fetch(API+'/auth/token', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username, password})
+    });
+    const data = await r.json();
+    if (!r.ok) { showResult(resultEl, '❌ '+( data.detail || 'Credenciais inválidas'), 'err'); return; }
+
+    currentToken = data.access_token;
+    const payload = parseJwt(currentToken);
+    currentUser = payload;
+    tokenExpiry = payload.exp;
+    updateSessionUI(payload);
+    showResult(resultEl, '✅ Login efetuado com sucesso!', 'ok');
+    document.getElementById('btn-logout').style.display = '';
+    startExpiryCountdown();
+  } catch(e) {
+    showResult(resultEl, '❌ Erro de rede: '+e.message, 'err');
+  } finally {
+    btn.innerHTML = 'Entrar via Keycloak';
+    btn.disabled = false;
+  }
+}
+
+function doLogout() {
+  currentToken = null; currentUser = null; tokenExpiry = null;
+  if(expiryInterval) clearInterval(expiryInterval);
+  document.getElementById('session-info').style.display = 'none';
+  document.getElementById('session-empty').style.display = '';
+  document.getElementById('btn-logout').style.display = 'none';
+  document.getElementById('header-user').innerHTML = `<span style="font-size:12px;color:#475569;"><span class="pulse" style="display:inline-block;width:8px;height:8px;background:#10b981;border-radius:50%;margin-right:6px;"></span>API online</span>`;
+  document.getElementById('login-result').innerHTML = '';
+}
+
+function parseJwt(token) {
+  const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  return JSON.parse(atob(base64));
+}
+
+function updateSessionUI(p) {
+  const roles = p.realm_access?.roles || [];
+  const username = p.preferred_username || p.sub;
+  const mainRole = roles.find(r=>['admin','colaborador','visitante'].includes(r)) || roles[0] || '—';
+
+  document.getElementById('session-empty').style.display = 'none';
+  document.getElementById('session-info').style.display = '';
+  document.getElementById('avatar-letter').textContent = username[0].toUpperCase();
+  document.getElementById('sess-username').textContent = username;
+  document.getElementById('sess-email').textContent = p.email || '—';
+  document.getElementById('sess-sub').textContent = p.sub || '—';
+  document.getElementById('sess-payload').textContent = JSON.stringify(p, null, 2);
+
+  const badge = document.getElementById('sess-role-badge');
+  badge.textContent = mainRole;
+  badge.className = 'badge-'+mainRole;
+  badge.style.cssText = 'margin-left:auto;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;';
+
+  const rolesEl = document.getElementById('sess-roles');
+  rolesEl.innerHTML = roles.filter(r=>!['default-roles-iam-tp','offline_access','uma_authorization'].includes(r))
+    .map(r=>`<span class="badge-${['admin','colaborador','visitante'].includes(r)?r:'none'}" style="padding:2px 10px;border-radius:20px;font-size:12px;">${r}</span>`).join('');
+
+  document.getElementById('header-user').innerHTML = `
+    <span style="display:flex;align-items:center;gap:8px;">
+      <span style="width:28px;height:28px;background:#1e40af;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">${username[0].toUpperCase()}</span>
+      <span style="font-size:13px;font-weight:600;">${username}</span>
+      <span class="badge-${mainRole}" style="padding:2px 8px;border-radius:20px;font-size:11px;">${mainRole}</span>
+    </span>`;
+}
+
+function startExpiryCountdown() {
+  if(expiryInterval) clearInterval(expiryInterval);
+  function update() {
+    if (!tokenExpiry) return;
+    const left = tokenExpiry - Math.floor(Date.now()/1000);
+    const el = document.getElementById('sess-expiry');
+    if (!el) return;
+    if (left <= 0) { el.textContent = 'Expirado'; el.style.color = '#f87171'; }
+    else { const m=Math.floor(left/60), s=left%60; el.textContent = `${m}m ${s}s`; el.style.color = left<60?'#f87171':'#4ade80'; }
+  }
+  update();
+  expiryInterval = setInterval(update, 1000);
+}
+
+function renderEndpointsTable() {
+  const tbody = document.getElementById('endpoints-table');
+  tbody.innerHTML = ENDPOINTS.map(e => `
+    <tr>
+      <td><span style="background:#1e293b;padding:2px 8px;border-radius:4px;font-size:12px;font-family:monospace;color:#3b82f6;">${e.method}</span></td>
+      <td><code style="font-size:13px;color:#94a3b8;">${e.path}</code></td>
+      <td><span style="font-size:12px;color:#64748b;">${e.role}</span></td>
+      <td id="res-${e.path.replace(/\//g,'_')}"><span style="color:#475569;font-size:12px;">—</span></td>
+      <td><button class="btn-ghost" style="font-size:12px;padding:4px 12px;" onclick="testEndpoint('${e.path}','${e.method}')">Testar</button></td>
+    </tr>`).join('');
+  const warn = document.getElementById('no-token-rbac');
+  warn.style.display = currentToken ? 'none' : '';
+}
+
+async function testEndpoint(path, method) {
+  const key = path.replace(/\//g,'_');
+  const el = document.getElementById('res-'+key);
+  el.innerHTML = '<span class="spinner"></span>';
+  const headers = {'Content-Type':'application/json'};
+  if (currentToken) headers['Authorization'] = 'Bearer '+currentToken;
+  try {
+    const r = await fetch(API+path, {method, headers});
+    const data = await r.json().catch(()=>({}));
+    if (r.ok) {
+      el.innerHTML = `<span style="color:#4ade80;font-size:13px;">✅ ${r.status}</span>`;
+    } else if (r.status===401) {
+      el.innerHTML = `<span style="color:#facc15;font-size:13px;">⚠️ 401 Sem token</span>`;
+    } else if (r.status===403) {
+      el.innerHTML = `<span style="color:#f87171;font-size:13px;">❌ 403 Acesso negado</span>`;
+    } else {
+      el.innerHTML = `<span style="color:#f87171;font-size:13px;">❌ ${r.status}</span>`;
+    }
+  } catch(e) {
+    el.innerHTML = `<span style="color:#f87171;font-size:12px;">⚠️ Erro rede</span>`;
+  }
+}
+
+async function testAll() {
+  for (const e of ENDPOINTS) await testEndpoint(e.path, e.method);
+}
+
+function checkAdminGuard(elId) {
+  const isAdmin = currentUser?.realm_access?.roles?.includes('admin');
+  document.getElementById(elId).style.display = isAdmin ? 'none' : '';
+}
+
+async function loadUsers() {
+  const el = document.getElementById('users-list');
+  if (!currentToken) { el.innerHTML = '<p style="color:#475569;font-size:14px;">Sem token ativo.</p>'; return; }
+  el.innerHTML = '<span class="spinner"></span> A carregar...';
+  try {
+    const r = await fetch(API+'/admin/users', {headers:{Authorization:'Bearer '+currentToken}});
+    const data = await r.json();
+    if (!r.ok) { el.innerHTML = `<p style="color:#f87171;font-size:13px;">${data.detail||'Erro'}</p>`; return; }
+    el.innerHTML = `<table>
+      <thead><tr><th>Username</th><th>Email</th><th>Estado</th><th>Criado</th></tr></thead>
+      <tbody>${data.users.map(u=>`<tr>
+        <td style="font-weight:600;color:#f1f5f9;">${u.username}</td>
+        <td style="color:#64748b;">${u.email||'—'}</td>
+        <td><span style="padding:2px 8px;border-radius:20px;font-size:12px;${u.enabled?'background:#052e16;color:#4ade80;':'background:#2d0000;color:#f87171;'}">${u.enabled?'Ativo':'Desativado'}</span></td>
+        <td style="color:#475569;font-size:12px;">${u.createdTimestamp?new Date(u.createdTimestamp).toLocaleDateString('pt-PT'):'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } catch(e) { el.innerHTML = `<p style="color:#f87171;">Erro: ${e.message}</p>`; }
+}
+
+async function doJoiner() {
+  const body = {
+    username: document.getElementById('j-username').value.trim(),
+    email: document.getElementById('j-email').value.trim(),
+    role: document.getElementById('j-role').value,
+    password: document.getElementById('j-password').value.trim() || 'Temp@1234',
+  };
+  const el = document.getElementById('joiner-result');
+  if (!body.username || !body.email) { showResult(el,'❌ Username e email obrigatórios','err'); return; }
+  showResult(el,'<span class="spinner"></span> A criar utilizador...','');
+  try {
+    const r = await fetch(API+'/admin/jml/joiner',{method:'POST',headers:{Authorization:'Bearer '+currentToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data = await r.json();
+    if (r.ok) { showResult(el,'✅ '+data.message,'ok'); loadUsers(); }
+    else showResult(el,'❌ '+(data.detail||JSON.stringify(data)),'err');
+  } catch(e){ showResult(el,'❌ '+e.message,'err'); }
+}
+
+async function doMover() {
+  const body = {username:document.getElementById('m-username').value.trim(),old_role:document.getElementById('m-old-role').value,new_role:document.getElementById('m-new-role').value};
+  const el = document.getElementById('mover-result');
+  if (!body.username){ showResult(el,'❌ Username obrigatório','err'); return; }
+  showResult(el,'<span class="spinner"></span> A mover utilizador...','');
+  try {
+    const r = await fetch(API+'/admin/jml/mover',{method:'POST',headers:{Authorization:'Bearer '+currentToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data = await r.json();
+    if (r.ok){ showResult(el,'✅ '+data.message,'ok'); loadUsers(); }
+    else showResult(el,'❌ '+(data.detail||JSON.stringify(data)),'err');
+  } catch(e){ showResult(el,'❌ '+e.message,'err'); }
+}
+
+async function doLeaver() {
+  const username = document.getElementById('l-username').value.trim();
+  const el = document.getElementById('leaver-result');
+  if (!username){ showResult(el,'❌ Username obrigatório','err'); return; }
+  showResult(el,'<span class="spinner"></span> A desativar utilizador...','');
+  try {
+    const r = await fetch(API+'/admin/jml/leaver',{method:'POST',headers:{Authorization:'Bearer '+currentToken,'Content-Type':'application/json'},body:JSON.stringify({username})});
+    const data = await r.json();
+    if (r.ok){ showResult(el,'✅ '+data.message,'ok'); loadUsers(); }
+    else showResult(el,'❌ '+(data.detail||JSON.stringify(data)),'err');
+  } catch(e){ showResult(el,'❌ '+e.message,'err'); }
+}
+
+async function loadAudit() {
+  const filter = document.getElementById('audit-filter').value;
+  const tableEl = document.getElementById('audit-table-wrap');
+  const chartEl = document.getElementById('audit-chart');
+  const adminEl = document.getElementById('admin-events-wrap');
+  if (!currentToken){ tableEl.innerHTML='<p style="color:#475569;font-size:14px;">Sem token ativo.</p>'; return; }
+
+  tableEl.innerHTML = '<span class="spinner"></span>';
+  chartEl.innerHTML = '<span class="spinner"></span>';
+  adminEl.innerHTML = '<span class="spinner"></span>';
+
+  try {
+    const params = new URLSearchParams({max_events:50});
+    if(filter) params.set('event_type',filter);
+    const [auditR, summaryR] = await Promise.all([
+      fetch(API+'/admin/audit?'+params, {headers:{Authorization:'Bearer '+currentToken}}),
+      fetch(API+'/admin/audit/summary', {headers:{Authorization:'Bearer '+currentToken}}),
+    ]);
+    const audit = await auditR.json();
+    const summary = await summaryR.json();
+
+    // User events table
+    const evs = audit.user_events || [];
+    tableEl.innerHTML = evs.length===0 ? '<p style="color:#475569;font-size:14px;padding:16px;">Sem eventos encontrados.</p>' :
+      `<table><thead><tr><th>Tipo</th><th>Utilizador</th><th>IP</th><th>Data/Hora</th></tr></thead><tbody>${
+        evs.map(e=>`<tr>
+          <td><span style="font-size:12px;padding:2px 8px;border-radius:4px;${e.type?.includes('ERROR')?'background:#2d0000;color:#f87171;':'background:#052e16;color:#4ade80;'}">${e.type||'—'}</span></td>
+          <td style="font-size:13px;color:#94a3b8;">${e.details?.username||e.userId?.slice(0,8)+'...'||'—'}</td>
+          <td style="font-size:12px;color:#475569;">${e.ipAddress||'—'}</td>
+          <td style="font-size:12px;color:#475569;">${e.time?new Date(e.time).toLocaleString('pt-PT'):'—'}</td>
+        </tr>`).join('')
+      }</tbody></table>`;
+
+    // Chart
+    const byType = summary.by_type || {};
+    const entries = Object.entries(byType).sort((a,b)=>b[1]-a[1]).slice(0,10);
+    const max = Math.max(...entries.map(e=>e[1]),1);
+    chartEl.innerHTML = `<div style="font-size:12px;color:#475569;margin-bottom:8px;">Total: ${summary.total} eventos</div>`+
+      entries.map(([t,c])=>`<div style="margin-bottom:6px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:2px;"><span>${t}</span><span style="font-weight:600;">${c}</span></div>
+        <div style="background:#1e293b;border-radius:4px;height:16px;"><div class="bar" style="width:${Math.max(8,(c/max)*100)}%;height:16px;"></div></div>
+      </div>`).join('') || '<p style="color:#475569;font-size:13px;">Sem dados</p>';
+
+    // Admin events
+    const admEvs = audit.admin_events || [];
+    adminEl.innerHTML = admEvs.length===0 ? '<p style="color:#475569;font-size:14px;padding:8px;">Sem eventos admin encontrados.</p>' :
+      `<table><thead><tr><th>Operação</th><th>Recurso</th><th>Representação</th><th>Data/Hora</th></tr></thead><tbody>${
+        admEvs.map(e=>`<tr>
+          <td><span style="font-size:12px;padding:2px 8px;border-radius:4px;background:#1c1400;color:#facc15;">${e.operationType||'—'}</span></td>
+          <td style="font-size:12px;color:#64748b;">${e.resourceType||'—'}</td>
+          <td style="font-size:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${JSON.stringify(e.representation||{})}</td>
+          <td style="font-size:12px;color:#475569;">${e.time?new Date(e.time).toLocaleString('pt-PT'):'—'}</td>
+        </tr>`).join('')
+      }</tbody></table>`;
+
+  } catch(e){ tableEl.innerHTML=`<p style="color:#f87171;">Erro: ${e.message}</p>`; }
+}
+
+function showResult(el, msg, type) {
+  const cls = type==='ok'?'result-ok':type==='err'?'result-err':'';
+  el.innerHTML = `<div class="${cls}" style="padding:10px;border-radius:6px;font-size:13px;">${msg}</div>`;
+}
+
+// Init
+renderEndpointsTable();
+</script>
+</body>
+</html>

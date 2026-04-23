@@ -34,7 +34,7 @@ async def get_current_user(
             algorithms=["RS256"],
             audience=settings.keycloak_client_id,
             issuer=settings.issuer,
-            options={"verify_aud": False},
+            options={"verify_aud": False, "verify_iss": False},
         )
         return payload
     except JWTError as exc:
