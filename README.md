@@ -30,24 +30,25 @@ docker compose up --build
 ```
 
 O `docker compose up` inicia automaticamente:
+
 - **PostgreSQL** na porta `5432`
-- **Keycloak** na porta `8080` (importa o realm `iam-tp` via `realm-export.json`)
+- **Keycloak** na porta `8081` (importa o realm `iam-tp` via `realm-export.json`)
 - **FastAPI** na porta `8000`
 
 Aguardar até ao Keycloak estar saudável (pode demorar ~60 segundos na primeira vez).
 
 ### 3. Verificar
 
-- Keycloak Admin Console: http://localhost:8080 (credenciais do `.env`)
-- FastAPI Swagger UI: http://localhost:8000/docs
-- Endpoint de saúde: http://localhost:8000/health
+- Keycloak Admin Console: <http://localhost:8081> (credenciais do `.env`)
+- FastAPI Swagger UI: <http://localhost:8000/docs>
+- Endpoint de saúde: <http://localhost:8000/health>
 
 ---
 
 ## Utilizadores de teste
 
 | Username | Password | Role |
-|---|---|---|
+| --- | --- | --- |
 | `admin.user` | `Admin@1234` | admin |
 | `colaborador.user` | `Colab@1234` | colaborador |
 | `visitante.user` | `Visit@1234` | visitante |
@@ -61,7 +62,7 @@ Aguardar até ao Keycloak estar saudável (pode demorar ~60 segundos na primeira
 ### Via Keycloak (Resource Owner Password — apenas para testes)
 
 ```bash
-TOKEN=$(curl -s -X POST http://localhost:8080/realms/iam-tp/protocol/openid-connect/token \
+TOKEN=$(curl -s -X POST http://localhost:8081/realms/iam-tp/protocol/openid-connect/token \
   -d "grant_type=password" \
   -d "client_id=fastapi-client" \
   -d "client_secret=<OIDC_CLIENT_SECRET>" \
@@ -86,7 +87,7 @@ curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/colaborador/data
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8000/admin/users
 
 # Área admin — com token de admin
-TOKEN_ADMIN=$(curl -s -X POST http://localhost:8080/realms/iam-tp/protocol/openid-connect/token \
+TOKEN_ADMIN=$(curl -s -X POST http://localhost:8081/realms/iam-tp/protocol/openid-connect/token \
   -d "grant_type=password" -d "client_id=fastapi-client" \
   -d "client_secret=<OIDC_CLIENT_SECRET>" \
   -d "username=admin.user" -d "password=Admin@1234" \
@@ -112,7 +113,7 @@ Criar um ficheiro `.env` em `jml/` (ou usar o da raiz do projeto):
 
 ```bash
 # jml/.env
-KEYCLOAK_URL=http://localhost:8080
+KEYCLOAK_URL=http://localhost:8081
 KEYCLOAK_REALM=iam-tp
 KEYCLOAK_ADMIN=admin
 KEYCLOAK_ADMIN_PASSWORD=<password do .env>
@@ -148,9 +149,10 @@ Desativa a conta, remove todas as roles e revoga sessões. Login passa a falhar.
 ## MFA (TOTP)
 
 O utilizador `admin.user` tem `CONFIGURE_TOTP` como Required Action.  
-No primeiro login via Keycloak (http://localhost:8080), será redirecionado para configurar MFA.
+No primeiro login via Keycloak (<http://localhost:8081>), será redirecionado para configurar MFA.
 
 Para forçar MFA noutro utilizador via Admin Console:
+
 1. Keycloak → `iam-tp` → Users → selecionar utilizador
 2. Credentials → Required Actions → adicionar `Configure OTP`
 
@@ -190,7 +192,7 @@ docker cp <keycloak-container-id>:/tmp/realm-export.json ./realm-export.json
 
 ## Estrutura do projeto
 
-```
+```text
 Projeto_IAM/
 ├── docker-compose.yml
 ├── .env.example

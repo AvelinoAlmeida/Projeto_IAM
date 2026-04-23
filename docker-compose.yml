@@ -24,22 +24,23 @@ services:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME_PORT: 8081
       KC_HOSTNAME_STRICT: false
       KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: "true"
     ports:
-      - "8080:8080"
+      - "8081:8080"
     volumes:
       - ./realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/realms/iam-tp || exit 1"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && cat <&3 | grep -q UP"]
       interval: 20s
       timeout: 10s
       retries: 10
-      start_period: 60s
+      start_period: 90s
 
   app:
     build: ./app
