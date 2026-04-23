@@ -4,12 +4,20 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
-from auth import require_role
+from auth import require_mfa, require_role
 from config import settings
+from keycloak_client import (
+    admin_headers,
+    get_admin_token,
+    get_group_id,
+    get_role,
+    get_user_id,
+)
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 _require_admin = require_role("admin")
+_require_mfa = require_mfa()
 
 ROLE_GROUP_MAP = {
     "admin": "Admins",
@@ -35,71 +43,15 @@ class LeaverRequest(BaseModel):
     username: str
 
 
-async def _get_admin_token() -> str:
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            settings.token_url,
-            data={
-                "grant_type": "password",
-                "client_id": settings.keycloak_client_id,
-                "client_secret": settings.keycloak_client_secret,
-                "username": settings.keycloak_admin_user,
-                "password": settings.keycloak_admin_password,
-                "scope": "openid",
-            },
-        )
-        if resp.status_code != 200:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Não foi possível obter token de admin do Keycloak",
-            )
-        return resp.json()["access_token"]
-
-
-async def _get_user_id(client: httpx.AsyncClient, headers: dict, username: str) -> str:
-    resp = await client.get(
-        f"{settings.admin_api_url}/users",
-        headers=headers,
-        params={"username": username, "exact": "true"},
-    )
-    resp.raise_for_status()
-    users = resp.json()
-    if not users:
-        raise HTTPException(status_code=404, detail=f"Utilizador '{username}' não encontrado")
-    return users[0]["id"]
-
-
-async def _get_role(client: httpx.AsyncClient, headers: dict, role_name: str) -> dict:
-    resp = await client.get(
-        f"{settings.admin_api_url}/roles/{role_name}",
-        headers=headers,
-    )
-    if resp.status_code == 404:
-        raise HTTPException(status_code=400, detail=f"Role '{role_name}' não existe")
-    resp.raise_for_status()
-    return resp.json()
-
-
-async def _get_group_id(client: httpx.AsyncClient, headers: dict, group_name: str) -> str:
-    resp = await client.get(
-        f"{settings.admin_api_url}/groups",
-        headers=headers,
-        params={"search": group_name},
-    )
-    resp.raise_for_status()
-    groups = resp.json()
-    if not groups:
-        raise HTTPException(status_code=400, detail=f"Grupo '{group_name}' não encontrado")
-    return groups[0]["id"]
-
-
 @router.get("/users")
 async def list_users(user: Annotated[dict, Depends(_require_admin)]):
-    token = await _get_admin_token()
+    token = await get_admin_token()
+    headers = admin_headers(token)
+
     async with httpx.AsyncClient() as client:
         resp = await client.get(
             f"{settings.admin_api_url}/users",
-            headers={"Authorization": f"Bearer {token}"},
+            headers=headers,
             params={"max": 50},
         )
         resp.raise_for_status()
@@ -126,7 +78,8 @@ async def audit_events(
     max_events: int = Query(default=50, le=200),
     event_type: str | None = Query(default=None),
 ):
-    token = await _get_admin_token()
+    token = await get_admin_token()
+    headers = admin_headers(token)
 
     params: dict = {"max": max_events}
     if event_type:
@@ -135,12 +88,12 @@ async def audit_events(
     async with httpx.AsyncClient() as client:
         events_resp = await client.get(
             f"{settings.admin_api_url}/events",
-            headers={"Authorization": f"Bearer {token}"},
+            headers=headers,
             params=params,
         )
         admin_events_resp = await client.get(
             f"{settings.admin_api_url}/admin-events",
-            headers={"Authorization": f"Bearer {token}"},
+            headers=headers,
             params={"max": max_events},
         )
         events_resp.raise_for_status()
@@ -152,13 +105,27 @@ async def audit_events(
     }
 
 
+@router.get("/mfa-area")
+async def mfa_area(
+    user: Annotated[dict, Depends(_require_admin)],
+    mfa_user: Annotated[dict, Depends(_require_mfa)],
+):
+    return {
+        "message": "Acesso admin com MFA confirmado.",
+        "user": mfa_user.get("preferred_username"),
+        "amr": mfa_user.get("amr"),
+        "acr": mfa_user.get("acr"),
+    }
+
+
 @router.get("/audit/summary")
 async def audit_summary(user: Annotated[dict, Depends(_require_admin)]):
-    token = await _get_admin_token()
+    token = await get_admin_token()
+    headers = admin_headers(token)
     async with httpx.AsyncClient() as client:
         resp = await client.get(
             f"{settings.admin_api_url}/events",
-            headers={"Authorization": f"Bearer {token}"},
+            headers=headers,
             params={"max": 200},
         )
         resp.raise_for_status()
@@ -180,8 +147,8 @@ async def jml_joiner(
     if body.role not in ROLE_GROUP_MAP:
         raise HTTPException(status_code=400, detail=f"Role inválida. Válidas: {list(ROLE_GROUP_MAP)}")
 
-    token = await _get_admin_token()
-    headers = {"Authorization": f"Bearer {token}"}
+    token = await get_admin_token()
+    headers = admin_headers(token)
 
     async with httpx.AsyncClient() as client:
         create_resp = await client.post(
@@ -199,9 +166,9 @@ async def jml_joiner(
             raise HTTPException(status_code=409, detail=f"Utilizador '{body.username}' já existe")
         create_resp.raise_for_status()
 
-        user_id = await _get_user_id(client, headers, body.username)
-        role = await _get_role(client, headers, body.role)
-        group_id = await _get_group_id(client, headers, ROLE_GROUP_MAP[body.role])
+        user_id = await get_user_id(client, headers, body.username)
+        role = await get_role(client, headers, body.role)
+        group_id = await get_group_id(client, headers, ROLE_GROUP_MAP[body.role])
 
         await client.post(
             f"{settings.admin_api_url}/users/{user_id}/role-mappings/realm",
@@ -225,15 +192,15 @@ async def jml_mover(
         if r not in ROLE_GROUP_MAP:
             raise HTTPException(status_code=400, detail=f"Role inválida: '{r}'. Válidas: {list(ROLE_GROUP_MAP)}")
 
-    token = await _get_admin_token()
-    headers = {"Authorization": f"Bearer {token}"}
+    token = await get_admin_token()
+    headers = admin_headers(token)
 
     async with httpx.AsyncClient() as client:
-        user_id = await _get_user_id(client, headers, body.username)
-        old_role = await _get_role(client, headers, body.old_role)
-        new_role = await _get_role(client, headers, body.new_role)
-        old_group_id = await _get_group_id(client, headers, ROLE_GROUP_MAP[body.old_role])
-        new_group_id = await _get_group_id(client, headers, ROLE_GROUP_MAP[body.new_role])
+        user_id = await get_user_id(client, headers, body.username)
+        old_role = await get_role(client, headers, body.old_role)
+        new_role = await get_role(client, headers, body.new_role)
+        old_group_id = await get_group_id(client, headers, ROLE_GROUP_MAP[body.old_role])
+        new_group_id = await get_group_id(client, headers, ROLE_GROUP_MAP[body.new_role])
 
         await client.delete(
             f"{settings.admin_api_url}/users/{user_id}/role-mappings/realm",
@@ -266,11 +233,11 @@ async def jml_leaver(
     body: LeaverRequest,
     user: Annotated[dict, Depends(_require_admin)],
 ):
-    token = await _get_admin_token()
-    headers = {"Authorization": f"Bearer {token}"}
+    token = await get_admin_token()
+    headers = admin_headers(token)
 
     async with httpx.AsyncClient() as client:
-        user_id = await _get_user_id(client, headers, body.username)
+        user_id = await get_user_id(client, headers, body.username)
 
         await client.put(
             f"{settings.admin_api_url}/users/{user_id}",

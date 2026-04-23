@@ -22,19 +22,32 @@ async def _get_jwks() -> dict:
     return _jwks_cache
 
 
+def _resolve_jwk(token: str, jwks: dict) -> dict:
+    header = jwt.get_unverified_header(token)
+    kid = header.get("kid")
+    if not kid:
+        raise JWTError("Token sem kid no header")
+
+    for key in jwks.get("keys", []):
+        if key.get("kid") == kid:
+            return key
+
+    raise JWTError("JWK para o token não encontrada")
+
+
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials, Depends(bearer_scheme)],
 ) -> dict:
     token = credentials.credentials
     try:
         jwks = await _get_jwks()
+        jwk = _resolve_jwk(token, jwks)
         payload = jwt.decode(
             token,
-            jwks,
+            jwk,
             algorithms=["RS256"],
             audience=settings.keycloak_client_id,
             issuer=settings.issuer,
-            options={"verify_aud": False, "verify_iss": False},
         )
         return payload
     except JWTError as exc:
@@ -44,6 +57,22 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+def require_mfa():
+    async def dependency(user: Annotated[dict, Depends(get_current_user)]) -> dict:
+        amr = user.get("amr", [])
+        if isinstance(amr, str):
+            amr = [amr]
+
+        acr = str(user.get("acr", "")).lower()
+        mfa_factors = {"otp", "mfa", "2fa", "password+otp", "google_authenticator"}
+        if not any(f in amr for f in mfa_factors) and not any(token in acr for token in mfa_factors):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Acesso negado. Autenticação multifator (MFA) é necessária para este recurso.",
+            )
+        return user
+
+    return dependency
 
 def require_role(*roles: str):
     async def dependency(user: Annotated[dict, Depends(get_current_user)]) -> dict:

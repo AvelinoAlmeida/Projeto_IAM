@@ -71,6 +71,8 @@ TOKEN=$(curl -s -X POST http://localhost:8081/realms/iam-tp/protocol/openid-conn
   | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 ```
 
+> Nota: este fluxo `password` é usado aqui apenas como atalho de teste para chamar a API sem UI. O cliente `fastapi-client` do `realm-export.json` também suporta o fluxo OIDC Authorization Code + PKCE (`standardFlowEnabled: true` e `pkce.code.challenge.method: S256`), que é o fluxo recomendado para uma demo OIDC completa.
+
 ### Testar endpoints
 
 ```bash
@@ -96,6 +98,40 @@ TOKEN_ADMIN=$(curl -s -X POST http://localhost:8081/realms/iam-tp/protocol/openi
 curl -H "Authorization: Bearer $TOKEN_ADMIN" http://localhost:8000/admin/users
 curl -H "Authorization: Bearer $TOKEN_ADMIN" http://localhost:8000/admin/audit
 curl -H "Authorization: Bearer $TOKEN_ADMIN" http://localhost:8000/admin/audit/summary
+
+# MFA e demonstração adicional
+
+O endpoint `/admin/mfa-area` exige tanto a role `admin` quanto uma autenticação multifator comprovada pelo token (`amr`/`acr`). Para testar:
+
+1. Faça login no Keycloak com `admin.user` e configure TOTP quando solicitado.
+2. Obtenha um token válido.
+3. Chame:
+
+```bash
+curl -H "Authorization: Bearer $TOKEN_ADMIN" http://localhost:8000/admin/mfa-area
+```
+
+> Este endpoint serve como demonstração de política de MFA aplicada a uma zona mais sensível.
+
+---
+
+## Testes automatizados
+
+Existe um conjunto básico de testes em `tests/test_auth.py` que valida:
+- resolução de JWK e decodificação RS256
+- verificação de roles
+- política de MFA
+
+Instalar dependências de desenvolvimento:
+
+```bash
+python -m pip install -r requirements-dev.txt
+```
+
+Executar os testes:
+
+```bash
+python -m pytest tests/test_auth.py
 ```
 
 ---
