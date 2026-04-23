@@ -105,9 +105,13 @@
         <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username</label>
         <input class="input" id="login-username" type="text" placeholder="username">
       </div>
-      <div style="margin-bottom:16px;">
+      <div style="margin-bottom:12px;">
         <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Password</label>
         <input class="input" id="login-password" type="password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div style="margin-bottom:16px;" id="otp-row" style="display:none;">
+        <label style="font-size:12px;color:#c4b5fd;display:block;margin-bottom:4px;">Código OTP <span style="color:#475569;">(apenas para admin com MFA)</span></label>
+        <input class="input" id="login-otp" type="text" inputmode="numeric" maxlength="6" placeholder="6 dígitos do Authenticator" onkeydown="if(event.key==='Enter')doLogin()" style="letter-spacing:0.3em;font-family:monospace;">
       </div>
       <div style="display:flex;gap:8px;">
         <button class="btn-primary" id="btn-login" onclick="doLogin()" style="flex:1;">Entrar via Keycloak</button>
@@ -152,6 +156,32 @@
         </details>
       </div>
     </div>
+  </div>
+
+  <!-- Paste token -->
+  <div class="card" style="padding:24px;margin-top:24px;border:1px solid #4c1d95;">
+    <details>
+      <summary style="cursor:pointer;font-size:14px;font-weight:600;color:#c4b5fd;display:flex;align-items:center;gap:8px;">
+        <span>🔑 Usar token externo (MFA demo — obter via Keycloak browser flow)</span>
+      </summary>
+      <div style="margin-top:16px;">
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;padding:10px;background:#0f172a;border-radius:6px;line-height:1.6;">
+          Para demonstrar <code style="color:#c4b5fd;">/admin/mfa-area</code> com MFA real:<br>
+          1. Abre <code style="color:#3b82f6;">http://localhost:8081/realms/iam-tp/account</code> → login com <code>admin.user</code> + TOTP<br>
+          2. Abre as DevTools (F12) → Application → Local Storage ou Network → copia o <code>access_token</code><br>
+          <strong style="color:#facc15;">Em alternativa:</strong> corre no terminal:<br>
+          <code style="color:#4ade80;font-size:11px;">curl -s -X POST http://localhost:8081/realms/iam-tp/protocol/openid-connect/token -d "grant_type=password&client_id=fastapi-client&client_secret=Admin123!&username=admin.user&password=Admin@1234" | python3 -m json.tool</code><br>
+          <span style="color:#475569;font-size:11px;">(funciona apenas se o CONFIGURE_TOTP já foi concluído — o token terá <code>amr: ["otp"]</code>)</span>
+        </div>
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:6px;">Colar Bearer token (JWT)</label>
+        <textarea class="input" id="paste-token" rows="3" placeholder="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..." style="font-family:monospace;font-size:11px;resize:vertical;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn-primary" onclick="usePastedToken()" style="flex:1;">Usar este token</button>
+          <button class="btn-ghost" onclick="document.getElementById('paste-token').value=''">Limpar</button>
+        </div>
+        <div id="paste-result" style="margin-top:8px;"></div>
+      </div>
+    </details>
   </div>
 
   <!-- Flow diagram -->
@@ -242,8 +272,15 @@
         <tr><td><code style="color:#94a3b8;font-size:12px;">GET /colaborador/perfil</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
         <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/users</code></td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
         <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/audit</code></td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td>
+          <code style="color:#94a3b8;font-size:12px;">GET /admin/mfa-area</code>
+          <span style="margin-left:6px;font-size:10px;background:#4c1d95;color:#c4b5fd;padding:1px 6px;border-radius:10px;">+ MFA</span>
+        </td><td style="text-align:center">✅ <span style="font-size:10px;color:#64748b;">(MFA obrig.)</span></td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
       </tbody>
     </table>
+    <div style="margin-top:12px;padding:10px 14px;background:#1c0a2e;border:1px solid #7c3aed;border-radius:8px;font-size:12px;color:#c4b5fd;">
+      🔒 <strong>/admin/mfa-area</strong> exige role <code>admin</code> <em>e</em> autenticação MFA comprovada no JWT — verifica os claims <code>amr</code> (ex: <code>["otp"]</code>) e <code>acr</code>. Sem MFA → 403 mesmo com token admin válido.
+    </div>
   </div>
 </div>
 
@@ -595,6 +632,7 @@ const ENDPOINTS = [
   { method:'GET', path:'/admin/users',       role:'admin',           desc:'Lista utilizadores' },
   { method:'GET', path:'/admin/audit',       role:'admin',           desc:'Eventos de auditoria' },
   { method:'GET', path:'/admin/audit/summary',role:'admin',          desc:'Resumo de auditoria' },
+  { method:'GET', path:'/admin/mfa-area',    role:'admin + MFA',     desc:'Área protegida por MFA (amr/acr)' },
 ];
 
 function showTab(name) {
@@ -615,12 +653,15 @@ function applyPreset() {
   const [u,p] = val.split('|');
   document.getElementById('login-username').value = u;
   document.getElementById('login-password').value = p;
+  document.getElementById('login-otp').value = '';
+  document.getElementById('otp-row').style.display = u === 'admin.user' ? '' : 'none';
 }
 
 async function doLogin() {
   const btn = document.getElementById('btn-login');
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
+  const totp = document.getElementById('login-otp').value.trim() || null;
   const resultEl = document.getElementById('login-result');
   if (!username || !password) { showResult(resultEl, '❌ Preenche username e password.', 'err'); return; }
 
@@ -629,7 +670,7 @@ async function doLogin() {
   try {
     const r = await fetch(API+'/auth/token', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username, password})
+      body: JSON.stringify({username, password, ...(totp && {totp})})
     });
     const data = await r.json();
     if (!r.ok) { showResult(resultEl, '❌ '+( data.detail || 'Credenciais inválidas'), 'err'); return; }
@@ -880,6 +921,31 @@ async function loadAudit() {
 function showResult(el, msg, type) {
   const cls = type==='ok'?'result-ok':type==='err'?'result-err':'';
   el.innerHTML = `<div class="${cls}" style="padding:10px;border-radius:6px;font-size:13px;">${msg}</div>`;
+}
+
+function usePastedToken() {
+  const raw = document.getElementById('paste-token').value.trim().replace(/^Bearer\s+/i,'');
+  const el = document.getElementById('paste-result');
+  if (!raw) { showResult(el, '❌ Cola um token JWT válido.', 'err'); return; }
+  try {
+    const payload = parseJwt(raw);
+    const now = Math.floor(Date.now()/1000);
+    if (payload.exp && payload.exp < now) { showResult(el, '⚠️ Token expirado — obtém um novo.', 'err'); return; }
+    currentToken = raw;
+    currentUser = payload;
+    tokenExpiry = payload.exp;
+    updateSessionUI(payload);
+    startExpiryCountdown();
+    const amr = payload.amr || [];
+    const hasMfa = amr.some(f => ['otp','mfa','2fa','google_authenticator'].includes(f));
+    const mfaNote = hasMfa
+      ? `<span style="color:#4ade80;">✅ MFA confirmado — amr: ${JSON.stringify(amr)}</span>`
+      : `<span style="color:#facc15;">⚠️ Token sem MFA (amr: ${JSON.stringify(amr)}) — /admin/mfa-area retornará 403</span>`;
+    showResult(el, `✅ Token carregado como <strong>${payload.preferred_username}</strong>. ${mfaNote}`, 'ok');
+    document.getElementById('btn-logout').style.display = '';
+  } catch(e) {
+    showResult(el, '❌ JWT inválido ou mal formado: ' + e.message, 'err');
+  }
 }
 
 // Init

@@ -15,6 +15,7 @@ router = APIRouter(tags=["public"])
 class LoginRequest(BaseModel):
     username: str
     password: str
+    totp: str | None = None
 
 
 @router.get("/health")
@@ -53,6 +54,7 @@ async def login(body: LoginRequest):
                 "username": body.username,
                 "password": body.password,
                 "scope": "openid",
+                **({"totp": body.totp} if body.totp else {}),
             },
         )
     if resp.status_code != 200:

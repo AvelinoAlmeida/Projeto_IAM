@@ -1,7 +1,7 @@
 {
   "id": "iam-tp",
   "realm": "iam-tp",
-  "displayName": "IAM Trabalho Prático",
+  "displayName": "IAM Trabalho Pr\u00c3\u00a1tico",
   "enabled": true,
   "sslRequired": "external",
   "registrationAllowed": false,
@@ -20,7 +20,7 @@
   "roles": {
     "realm": [
       {
-        "id": "role-admin",
+        "id": "94e4e660-ea5b-463c-a011-f19936a0c242",
         "name": "admin",
         "description": "Administrador com acesso total",
         "composite": false,
@@ -28,7 +28,7 @@
         "containerId": "iam-tp"
       },
       {
-        "id": "role-colaborador",
+        "id": "8f0cd5a6-99a4-427a-9aaa-346325a9eb44",
         "name": "colaborador",
         "description": "Colaborador com acesso a recursos internos",
         "composite": false,
@@ -36,9 +36,9 @@
         "containerId": "iam-tp"
       },
       {
-        "id": "role-visitante",
+        "id": "3063d69c-664f-4d57-9153-eaca938a5fec",
         "name": "visitante",
-        "description": "Visitante com acesso apenas a recursos públicos",
+        "description": "Visitante com acesso apenas a recursos p\u00c3\u00bablicos",
         "composite": false,
         "clientRole": false,
         "containerId": "iam-tp"
@@ -47,36 +47,48 @@
   },
   "groups": [
     {
-      "id": "group-admins",
+      "id": "9a7ef3b6-f453-4d25-92e1-71ac072bbdfa",
       "name": "Admins",
       "path": "/Admins",
-      "realmRoles": ["admin"]
+      "realmRoles": [
+        "admin"
+      ]
     },
     {
-      "id": "group-colaboradores",
+      "id": "0458a9b0-e37e-484c-98b8-cb276f3354df",
       "name": "Colaboradores",
       "path": "/Colaboradores",
-      "realmRoles": ["colaborador"]
+      "realmRoles": [
+        "colaborador"
+      ]
     },
     {
-      "id": "group-visitantes",
+      "id": "9d51c108-7f94-423c-ae08-a664af707dae",
       "name": "Visitantes",
       "path": "/Visitantes",
-      "realmRoles": ["visitante"]
+      "realmRoles": [
+        "visitante"
+      ]
     }
   ],
   "users": [
     {
-      "id": "user-admin-1",
+      "id": "a7f80564-8ab6-4626-b3e2-c4609971e181",
       "username": "admin.user",
       "email": "admin@iam-tp.local",
       "firstName": "Admin",
       "lastName": "User",
       "enabled": true,
       "emailVerified": true,
-      "realmRoles": ["admin"],
-      "groups": ["/Admins"],
-      "requiredActions": ["CONFIGURE_TOTP"],
+      "realmRoles": [
+        "admin"
+      ],
+      "groups": [
+        "/Admins"
+      ],
+      "requiredActions": [
+        "CONFIGURE_TOTP"
+      ],
       "credentials": [
         {
           "type": "password",
@@ -86,15 +98,19 @@
       ]
     },
     {
-      "id": "user-colab-1",
+      "id": "de17ee3b-3b5f-444a-991e-85f0fff1630d",
       "username": "colaborador.user",
       "email": "colaborador@iam-tp.local",
       "firstName": "Colaborador",
       "lastName": "User",
       "enabled": true,
       "emailVerified": true,
-      "realmRoles": ["colaborador"],
-      "groups": ["/Colaboradores"],
+      "realmRoles": [
+        "colaborador"
+      ],
+      "groups": [
+        "/Colaboradores"
+      ],
       "credentials": [
         {
           "type": "password",
@@ -104,15 +120,19 @@
       ]
     },
     {
-      "id": "user-visit-1",
+      "id": "07dd33d8-8500-4cce-915c-2e66d268c9b2",
       "username": "visitante.user",
       "email": "visitante@iam-tp.local",
       "firstName": "Visitante",
       "lastName": "User",
       "enabled": true,
       "emailVerified": true,
-      "realmRoles": ["visitante"],
-      "groups": ["/Visitantes"],
+      "realmRoles": [
+        "visitante"
+      ],
+      "groups": [
+        "/Visitantes"
+      ],
       "credentials": [
         {
           "type": "password",
@@ -124,17 +144,19 @@
   ],
   "clients": [
     {
-      "id": "client-fastapi",
+      "id": "4231b378-b9c1-460e-94c1-4173ba47e625",
       "clientId": "fastapi-client",
       "name": "FastAPI Application",
       "enabled": true,
       "publicClient": false,
-      "secret": "change-me-client-secret",
+      "secret": "Admin123!",
       "redirectUris": [
         "http://localhost:8000/*",
         "http://localhost:8000/auth/callback"
       ],
-      "webOrigins": ["http://localhost:8000"],
+      "webOrigins": [
+        "http://localhost:8000"
+      ],
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "serviceAccountsEnabled": false,
@@ -145,7 +167,7 @@
       },
       "protocolMappers": [
         {
-          "id": "mapper-realm-roles",
+          "id": "c04d76bf-8549-4116-ba6f-87f074751dae",
           "name": "realm roles",
           "protocol": "openid-connect",
           "protocolMapper": "oidc-usermodel-realm-role-mapper",
@@ -164,7 +186,9 @@
   ],
   "eventsEnabled": true,
   "eventsExpiration": 2592000,
-  "eventsListeners": ["jboss-logging"],
+  "eventsListeners": [
+    "jboss-logging"
+  ],
   "enabledEventTypes": [
     "LOGIN",
     "LOGIN_ERROR",
@@ -190,9 +214,9 @@
   "browserFlow": "browser-mfa",
   "authenticationFlows": [
     {
-      "id": "flow-browser-mfa",
+      "id": "c8e2c0f7-a924-4f69-ac90-c2ccadb753e0",
       "alias": "browser-mfa",
-      "description": "Browser flow com MFA obrigatório para admins",
+      "description": "Browser flow com MFA obrigat\u00c3\u00b3rio para admins",
       "providerId": "basic-flow",
       "topLevel": true,
       "builtIn": false,
@@ -228,7 +252,7 @@
       ]
     },
     {
-      "id": "flow-browser-mfa-forms",
+      "id": "a21d6ede-1f51-468e-8809-b52442dbfc5a",
       "alias": "browser-mfa forms",
       "description": "Username, password e OTP condicional",
       "providerId": "basic-flow",
@@ -252,7 +276,7 @@
       ]
     },
     {
-      "id": "flow-browser-mfa-otp",
+      "id": "68937f7e-7f37-4ea0-8563-43345c46e04d",
       "alias": "browser-mfa otp",
       "description": "OTP condicional",
       "providerId": "basic-flow",
