@@ -5,86 +5,466 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>IAM TP — Gestão de Identidade</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<style>
-  body { background: #0f1117; color: #e2e8f0; font-family: 'Inter', system-ui, sans-serif; }
-  .tab-active { background: #1e40af; color: #fff; border-bottom: 2px solid #3b82f6; }
-  .tab-inactive { color: #94a3b8; }
-  .tab-inactive:hover { color: #e2e8f0; background: #1e293b; }
-  .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; }
-  .badge-admin { background: #dc2626; color: #fff; }
-  .badge-colaborador { background: #2563eb; color: #fff; }
-  .badge-visitante { background: #059669; color: #fff; }
-  .badge-none { background: #475569; color: #fff; }
-  .result-ok { background: #052e16; border: 1px solid #16a34a; color: #4ade80; }
-  .result-err { background: #2d0000; border: 1px solid #dc2626; color: #f87171; }
-  .result-warn { background: #1c1400; border: 1px solid #ca8a04; color: #facc15; }
-  .input { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 8px 12px; width: 100%; }
-  .input:focus { outline: none; border-color: #3b82f6; }
-  .btn-primary { background: #2563eb; color: #fff; border-radius: 8px; padding: 8px 18px; font-weight: 600; transition: background 0.15s; }
-  .btn-primary:hover { background: #1d4ed8; }
-  .btn-primary:disabled { background: #1e40af; opacity: 0.5; cursor: not-allowed; }
-  .btn-danger { background: #dc2626; color: #fff; border-radius: 8px; padding: 8px 18px; font-weight: 600; transition: background 0.15s; }
-  .btn-danger:hover { background: #b91c1c; }
-  .btn-success { background: #059669; color: #fff; border-radius: 8px; padding: 8px 18px; font-weight: 600; transition: background 0.15s; }
-  .btn-success:hover { background: #047857; }
-  .btn-ghost { background: #1e293b; color: #94a3b8; border: 1px solid #334155; border-radius: 8px; padding: 8px 18px; font-weight: 600; transition: all 0.15s; }
-  .btn-ghost:hover { border-color: #3b82f6; color: #e2e8f0; }
-  pre { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px; overflow-x: auto; font-size: 12px; line-height: 1.6; }
-  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .pulse { animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
-  select { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 8px 12px; }
-  select:focus { outline: none; border-color: #3b82f6; }
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; padding: 10px 12px; background: #0f172a; color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
-  td { padding: 10px 12px; border-top: 1px solid #1e293b; font-size: 14px; }
-  tr:hover td { background: rgba(255,255,255,0.02); }
-  .bar { background: #2563eb; height: 20px; border-radius: 4px; transition: width 0.5s ease; min-width: 4px; }
-</style>
+<link rel="stylesheet" href="/static/dashboard.css">
 </head>
 <body>
 
-<!-- Header -->
-<div style="background: #0f1117; border-bottom: 1px solid #1e293b; padding: 0 24px;">
-  <div style="max-width: 1200px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px;">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/><path d="M12 12v4m0 0h3m-3 0H9"/></svg>
-      <span style="font-size:18px;font-weight:700;color:#f1f5f9;">IAM TP</span>
-      <span style="font-size:13px;color:#475569;">Gestão de Identidade · MEI · ESTG-IPP</span>
+<!-- ===== HEADER ===== -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-brand">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+        <circle cx="12" cy="8" r="4"/>
+        <path d="M20 21a8 8 0 1 0-16 0"/>
+        <path d="M12 12v4m0 0h3m-3 0H9"/>
+      </svg>
+      <span class="header-title">IAM TP</span>
+      <span class="header-sub">Gestão de Identidade · MEI · ESTG-IPP</span>
     </div>
-    <div id="header-user" style="display:flex;align-items:center;gap:10px;">
-      <span style="font-size:12px;color:#475569;" id="status-indicator">
+    <div id="header-user">
+      <span style="font-size:12px;color:#475569;">
         <span class="pulse" style="display:inline-block;width:8px;height:8px;background:#10b981;border-radius:50%;margin-right:6px;"></span>API online
       </span>
     </div>
   </div>
-</div>
+</header>
 
-<!-- Tabs -->
-<div style="background:#0f1117; border-bottom:1px solid #1e293b; padding: 0 24px;">
-  <div style="max-width:1200px; margin:0 auto; display:flex; gap:2px;">
-    <button class="tab-active" id="tab-auth" onclick="showTab('auth')" style="padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;">
-      🔐 Autenticação
-    </button>
-    <button class="tab-inactive" id="tab-rbac" onclick="showTab('rbac')" style="padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;">
-      🛡️ Autorização
-    </button>
-    <button class="tab-inactive" id="tab-jml" onclick="showTab('jml')" style="padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;">
-      👥 JML
-    </button>
-    <button class="tab-inactive" id="tab-audit" onclick="showTab('audit')" style="padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;">
-      📋 Auditoria
-    </button>
-    <button class="tab-inactive" id="tab-arch" onclick="showTab('arch')" style="padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;">
-      🏗️ Arquitetura
-    </button>
+<!-- ===== TABS ===== -->
+<nav class="tabs-bar">
+  <div class="tabs-inner">
+    <button class="tab-btn" id="tab-relatorio" onclick="showTab('relatorio')">📄 Relatório</button>
+    <button class="tab-btn active" id="tab-auth"      onclick="showTab('auth')">🔐 Autenticação</button>
+    <button class="tab-btn" id="tab-rbac"      onclick="showTab('rbac')">🛡️ Autorização</button>
+    <button class="tab-btn" id="tab-jml"       onclick="showTab('jml')">👥 JML</button>
+    <button class="tab-btn" id="tab-audit"     onclick="showTab('audit')">📋 Auditoria</button>
+    <button class="tab-btn" id="tab-arch"      onclick="showTab('arch')">🏗️ Arquitetura</button>
   </div>
-</div>
+</nav>
 
-<div style="max-width:1200px; margin:0 auto; padding:24px;">
+<div class="main">
 
-<!-- ===================== TAB: AUTENTICAÇÃO ===================== -->
+<!-- ===================================================
+     TAB: RELATÓRIO
+     =================================================== -->
+<div id="page-relatorio" style="display:none;">
+
+  <!-- Hero -->
+  <div class="report-hero">
+    <div class="report-hero-badge">MEI · ESTG-IPP · 2025/2026</div>
+    <h1>Gestão de <span>Identidade</span> e Acesso</h1>
+    <p>Plataforma IAM containerizada com autenticação OIDC/OAuth2, controlo de acesso baseado em papéis, autenticação multifator (TOTP) e gestão do ciclo de vida de utilizadores.</p>
+    <div class="stack-pills">
+      <span class="stack-pill sp-kc">🔑 Keycloak 26</span>
+      <span class="stack-pill sp-pg">🐘 PostgreSQL 16</span>
+      <span class="stack-pill sp-fa">⚡ FastAPI</span>
+      <span class="stack-pill sp-py">🐍 Python 3.12</span>
+      <span class="stack-pill sp-dk">🐳 Docker Compose</span>
+    </div>
+  </div>
+
+  <!-- O que é IAM? -->
+  <div style="margin-bottom:32px;">
+    <div class="rpt-title">O que é IAM?</div>
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="concept-icon">🔐</div>
+        <h3>Autenticação</h3>
+        <p>Quem és tu? OIDC via Keycloak. JWT assinado RS256. Fluxo Authorization Code + PKCE.</p>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🛡️</div>
+        <h3>Autorização (RBAC)</h3>
+        <p>O que podes fazer? 3 roles: admin, colaborador, visitante. Endpoints protegidos por role.</p>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">🔒</div>
+        <h3>MFA</h3>
+        <p>Segunda camada de segurança. TOTP via Google Authenticator. Obrigatório para admin.</p>
+      </div>
+      <div class="concept-card">
+        <div class="concept-icon">👥</div>
+        <h3>Ciclo de Vida (JML)</h3>
+        <p>Joiner, Mover, Leaver. Revogação de sessões em tempo real via Keycloak Admin API.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Serviços -->
+  <div style="margin-bottom:32px;">
+    <div class="rpt-title">Serviços (Docker Compose)</div>
+    <div class="services-grid">
+      <div class="svc-card svc-kc">
+        <div class="svc-header">
+          <span class="svc-icon">🔑</span>
+          <div>
+            <div class="svc-name">Keycloak 26</div>
+            <div class="svc-port svc-port-kc">localhost:8081 · interno :8080</div>
+          </div>
+        </div>
+        <div class="svc-features">
+          <span class="svc-feature">Identity Provider (IdP / SSO)</span>
+          <span class="svc-feature">Realm: iam-tp — importado de realm-export.json</span>
+          <span class="svc-feature">Roles: admin · colaborador · visitante</span>
+          <span class="svc-feature">MFA: TOTP obrigatório para admin</span>
+          <span class="svc-feature">Event logging: LOGIN · LOGOUT · RBAC</span>
+          <span class="svc-feature">Admin REST API para JML</span>
+        </div>
+      </div>
+      <div class="svc-card svc-fa">
+        <div class="svc-header">
+          <span class="svc-icon">⚡</span>
+          <div>
+            <div class="svc-name">FastAPI</div>
+            <div class="svc-port svc-port-fa">localhost:8000</div>
+          </div>
+        </div>
+        <div class="svc-features">
+          <span class="svc-feature">Validação JWT RS256 via JWKS</span>
+          <span class="svc-feature">RBAC com require_role() e require_mfa()</span>
+          <span class="svc-feature">/public — sem autenticação</span>
+          <span class="svc-feature">/colaborador — role: colaborador ou admin</span>
+          <span class="svc-feature">/admin — role: admin (+ MFA em /mfa-area)</span>
+          <span class="svc-feature">/admin/jml/* — equivalentes à CLI</span>
+        </div>
+      </div>
+      <div class="svc-card svc-pg">
+        <div class="svc-header">
+          <span class="svc-icon">🐘</span>
+          <div>
+            <div class="svc-name">PostgreSQL 16</div>
+            <div class="svc-port svc-port-pg">interno :5432</div>
+          </div>
+        </div>
+        <div class="svc-features">
+          <span class="svc-feature">Base de dados exclusiva do Keycloak</span>
+          <span class="svc-feature">Armazena: users · roles · sessions · events</span>
+          <span class="svc-feature">Não exposto externamente</span>
+          <span class="svc-feature">Ligação JDBC interna via Docker network</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fluxo de Autenticação -->
+  <div style="margin-bottom:32px;">
+    <div class="rpt-title">Fluxo de Autenticação OIDC</div>
+    <div class="flow-diagram">
+      <div class="flow-node">
+        <div class="flow-node-icon">🖥️</div>
+        <div class="flow-node-name">Cliente</div>
+        <div class="flow-node-sub">Browser / cURL</div>
+      </div>
+      <div class="flow-arrow">
+        <div class="flow-arrow-label" style="color:#3b82f6;">POST /auth/token</div>
+        <div class="flow-arrow-line" style="background:linear-gradient(to right,#3b82f6,#1d4ed8);"></div>
+        <div class="flow-arrow-sub">username + password</div>
+      </div>
+      <div class="flow-node">
+        <div class="flow-node-icon">⚡</div>
+        <div class="flow-node-name">FastAPI</div>
+        <div class="flow-node-sub">:8000</div>
+      </div>
+      <div class="flow-arrow">
+        <div class="flow-arrow-label" style="color:#8b5cf6;">ROPC grant</div>
+        <div class="flow-arrow-line" style="background:linear-gradient(to right,#8b5cf6,#7c3aed);"></div>
+        <div class="flow-arrow-sub">→ Keycloak :8080</div>
+      </div>
+      <div class="flow-node">
+        <div class="flow-node-icon">🔑</div>
+        <div class="flow-node-name">Keycloak</div>
+        <div class="flow-node-sub">:8081 (externo)</div>
+      </div>
+      <div class="flow-arrow">
+        <div class="flow-arrow-label" style="color:#10b981;">JWT (RS256)</div>
+        <div class="flow-arrow-line" style="background:linear-gradient(to right,#10b981,#059669);"></div>
+        <div class="flow-arrow-sub">access_token</div>
+      </div>
+      <div class="flow-node">
+        <div class="flow-node-icon">✅</div>
+        <div class="flow-node-name">Token</div>
+        <div class="flow-node-sub">Bearer JWT</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;">
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 12px;border-radius:20px;border:1px solid #1e293b;">✓ Assinatura RS256 verificada via JWKS</span>
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 12px;border-radius:20px;border:1px solid #1e293b;">✓ Claims: sub · email · realm_access.roles</span>
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 12px;border-radius:20px;border:1px solid #1e293b;">✓ MFA verificada via claim amr: ["otp"]</span>
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 12px;border-radius:20px;border:1px solid #1e293b;">✓ Realm: iam-tp · Alg: RS256</span>
+    </div>
+  </div>
+
+  <!-- Fases do Projeto -->
+  <div style="margin-bottom:32px;">
+    <div class="rpt-title">Fases do Projeto</div>
+    <div class="phase-grid">
+      <div class="phase-card ph1">
+        <div class="phase-num">1</div>
+        <h3>Infraestrutura Base</h3>
+        <p>Docker Compose com 3 serviços. realm-export.json versionado. Arranque reprodutível em 2–3 min.</p>
+      </div>
+      <div class="phase-card ph2">
+        <div class="phase-num">2</div>
+        <h3>Autenticação OIDC</h3>
+        <p>JWT RS256 emitido pelo Keycloak. Validação de assinatura via JWKS. Claims: sub, email, roles.</p>
+      </div>
+      <div class="phase-card ph3">
+        <div class="phase-num">3</div>
+        <h3>Autorização RBAC</h3>
+        <p>3 roles: admin, colaborador, visitante. Endpoints com respostas 200/403 demonstráveis ao vivo.</p>
+      </div>
+      <div class="phase-card ph4">
+        <div class="phase-num">4</div>
+        <h3>Autenticação MFA</h3>
+        <p>TOTP via Google Authenticator. admin.user com CONFIGURE_TOTP. Verificação via claim amr/acr.</p>
+      </div>
+      <div class="phase-card ph5">
+        <div class="phase-num">5</div>
+        <h3>Ciclo de Vida (JML)</h3>
+        <p>Joiner · Mover · Leaver via Keycloak Admin API. Sessões revogadas imediatamente na mudança de role.</p>
+      </div>
+      <div class="phase-card ph6">
+        <div class="phase-num">6</div>
+        <h3>Auditoria</h3>
+        <p>Eventos Keycloak: LOGIN, LOGOUT, LOGIN_ERROR. Dashboard com filtro e resumo por tipo de evento.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Utilizadores de teste -->
+  <div style="margin-bottom:32px;">
+    <div class="rpt-title">Utilizadores de Teste</div>
+    <div class="users-grid">
+      <div class="user-card uc-admin">
+        <div class="uc-role">admin</div>
+        <div class="uc-username">admin.user</div>
+        <div class="uc-pass">Admin@1234</div>
+        <div class="uc-note">Acesso total. JML. Auditoria.</div>
+        <div class="uc-mfa">🔒 MFA (TOTP) obrigatório</div>
+      </div>
+      <div class="user-card uc-colab">
+        <div class="uc-role">colaborador</div>
+        <div class="uc-username">colaborador.user</div>
+        <div class="uc-pass">Colab@1234</div>
+        <div class="uc-note">Acesso a /colaborador/*<br>Negado em /admin/*</div>
+      </div>
+      <div class="user-card uc-visit">
+        <div class="uc-role">visitante</div>
+        <div class="uc-username">visitante.user</div>
+        <div class="uc-pass">Visit@1234</div>
+        <div class="uc-note">Acesso mínimo (/public, /me)<br>Negado em /colaborador/* e /admin/*</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guia de Demo ao Vivo -->
+  <div style="margin-bottom:32px;">
+    <div class="rpt-title">Guia de Demo ao Vivo (10 min)</div>
+    <div class="demo-grid">
+      <div class="demo-step">
+        <div class="demo-num">1</div>
+        <div class="demo-content">
+          <h4>Mostrar arranque e serviços</h4>
+          <p>Demonstrar <code style="color:#6ee7b7;font-size:11px;">docker compose up</code> e confirmar que os 3 serviços estão ativos.</p>
+          <span class="demo-tag" onclick="showTab('auth')">→ Tab Autenticação</span>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-num">2</div>
+        <div class="demo-content">
+          <h4>Login como colaborador.user</h4>
+          <p>Selecionar preset → Entrar → mostrar JWT payload, roles e tempo de expiração.</p>
+          <span class="demo-tag" onclick="showTab('auth')">→ Tab Autenticação</span>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-num">3</div>
+        <div class="demo-content">
+          <h4>Testar RBAC com colaborador</h4>
+          <p>Clicar "Testar Todos" → mostrar ✅ em /colaborador/data e ❌ 403 em /admin/users.</p>
+          <span class="demo-tag" onclick="showTab('rbac')">→ Tab Autorização</span>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-num">4</div>
+        <div class="demo-content">
+          <h4>Login como admin.user</h4>
+          <p>Fazer login com admin.user (inserir código TOTP se MFA configurado). Mostrar role admin no header.</p>
+          <span class="demo-tag" onclick="showTab('auth')">→ Tab Autenticação</span>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-num">5</div>
+        <div class="demo-content">
+          <h4>Criar utilizador com Joiner</h4>
+          <p>Criar <code style="color:#fcd34d;font-size:11px;">demo.user</code> com role colaborador. Mostrar na lista de utilizadores.</p>
+          <span class="demo-tag" onclick="showTab('jml')">→ Tab JML</span>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-num">6</div>
+        <div class="demo-content">
+          <h4>Mover e Leaver — revogação instantânea</h4>
+          <p>Promover demo.user para admin → sessão revogada imediatamente. Depois: Leaver → login falha.</p>
+          <span class="demo-tag" onclick="showTab('jml')">→ Tab JML</span>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-num">7</div>
+        <div class="demo-content">
+          <h4>Mostrar eventos de auditoria</h4>
+          <p>Consultar eventos LOGIN, LOGIN_ERROR, LOGOUT. Filtrar por tipo. Ver resumo por evento.</p>
+          <span class="demo-tag" onclick="showTab('audit')">→ Tab Auditoria</span>
+        </div>
+      </div>
+      <div class="demo-step">
+        <div class="demo-num">8</div>
+        <div class="demo-content">
+          <h4>Demonstrar MFA em /admin/mfa-area</h4>
+          <p>Token sem MFA → 403. Colar token obtido com TOTP → 200. Mostrar diferença no claim amr.</p>
+          <span class="demo-tag" onclick="showTab('auth')">→ Token externo (MFA)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Critérios de Avaliação -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;">
+    <div>
+      <div class="rpt-title">Critérios de Avaliação (0–20)</div>
+      <div class="criteria-list">
+        <div class="crit-item" style="border-color:#10b981;">
+          <div class="crit-info">
+            <h4>Arquitetura e coerência técnica</h4>
+            <p>Keycloak + FastAPI + PostgreSQL · Docker Compose · realm-export.json</p>
+          </div>
+          <div class="crit-pct" style="color:#10b981;">20%</div>
+        </div>
+        <div class="crit-item" style="border-color:#3b82f6;">
+          <div class="crit-info">
+            <h4>Autenticação / Federação</h4>
+            <p>OIDC via Keycloak · JWT RS256 · claims: sub, email, roles</p>
+          </div>
+          <div class="crit-pct" style="color:#3b82f6;">15%</div>
+        </div>
+        <div class="crit-item" style="border-color:#6366f1;">
+          <div class="crit-info">
+            <h4>Autorização (RBAC)</h4>
+            <p>3 roles · endpoints protegidos · 200/403 demonstrável</p>
+          </div>
+          <div class="crit-pct" style="color:#6366f1;">15%</div>
+        </div>
+        <div class="crit-item" style="border-color:#f59e0b;">
+          <div class="crit-info">
+            <h4>JML (Joiner · Mover · Leaver)</h4>
+            <p>Via Keycloak Admin REST API · revogação de sessões</p>
+          </div>
+          <div class="crit-pct" style="color:#f59e0b;">15%</div>
+        </div>
+        <div class="crit-item" style="border-color:#ec4899;">
+          <div class="crit-info">
+            <h4>MFA (TOTP via Keycloak)</h4>
+            <p>admin.user → CONFIGURE_TOTP required · verificação amr/acr</p>
+          </div>
+          <div class="crit-pct" style="color:#ec4899;">15%</div>
+        </div>
+        <div class="crit-item" style="border-color:#14b8a6;">
+          <div class="crit-info">
+            <h4>Auditoria e segurança</h4>
+            <p>Keycloak events · LOGIN/LOGOUT/ERRORS · admin events</p>
+          </div>
+          <div class="crit-pct" style="color:#14b8a6;">10%</div>
+        </div>
+        <div class="crit-item" style="border-color:#64748b;">
+          <div class="crit-info">
+            <h4>Qualidade da demonstração</h4>
+            <p>Este dashboard · demo ao vivo · 10 minutos</p>
+          </div>
+          <div class="crit-pct" style="color:#64748b;">10%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Diagrama de arquitetura inline -->
+    <div>
+      <div class="rpt-title">Diagrama de Componentes</div>
+      <div class="arch-svg-wrap">
+        <svg viewBox="0 0 420 340" style="width:100%;">
+          <!-- Client -->
+          <rect x="10" y="140" width="90" height="60" rx="8" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="55" y="163" text-anchor="middle" fill="#94a3b8" font-size="11" font-family="monospace">Browser</text>
+          <text x="55" y="178" text-anchor="middle" fill="#475569" font-size="9">/ cURL</text>
+          <text x="55" y="193" text-anchor="middle" fill="#3b82f6" font-size="9">:8000</text>
+
+          <!-- FastAPI -->
+          <rect x="165" y="110" width="100" height="80" rx="8" fill="#082e25" stroke="#10b981" stroke-width="1.5"/>
+          <text x="215" y="135" text-anchor="middle" fill="#6ee7b7" font-size="11" font-family="monospace">FastAPI</text>
+          <text x="215" y="150" text-anchor="middle" fill="#475569" font-size="9">JWT validation</text>
+          <text x="215" y="163" text-anchor="middle" fill="#475569" font-size="9">RBAC / JML API</text>
+          <text x="215" y="183" text-anchor="middle" fill="#10b981" font-size="9">:8000</text>
+
+          <!-- Keycloak -->
+          <rect x="165" y="230" width="100" height="80" rx="8" fill="#1e1248" stroke="#8b5cf6" stroke-width="1.5"/>
+          <text x="215" y="255" text-anchor="middle" fill="#c4b5fd" font-size="11" font-family="monospace">Keycloak 26</text>
+          <text x="215" y="270" text-anchor="middle" fill="#475569" font-size="9">OIDC · SSO</text>
+          <text x="215" y="283" text-anchor="middle" fill="#475569" font-size="9">Admin API</text>
+          <text x="215" y="302" text-anchor="middle" fill="#8b5cf6" font-size="9">:8081</text>
+
+          <!-- PostgreSQL -->
+          <rect x="320" y="230" width="90" height="80" rx="8" fill="#1e293b" stroke="#0ea5e9" stroke-width="1.5"/>
+          <text x="365" y="255" text-anchor="middle" fill="#7dd3fc" font-size="11" font-family="monospace">PostgreSQL</text>
+          <text x="365" y="270" text-anchor="middle" fill="#475569" font-size="9">Keycloak DB</text>
+          <text x="365" y="283" text-anchor="middle" fill="#475569" font-size="9">users · events</text>
+          <text x="365" y="302" text-anchor="middle" fill="#0ea5e9" font-size="9">:5432</text>
+
+          <!-- JML box -->
+          <rect x="320" y="30" width="90" height="80" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <text x="365" y="55" text-anchor="middle" fill="#fcd34d" font-size="10" font-weight="bold">JML Scripts</text>
+          <text x="365" y="72" text-anchor="middle" fill="#64748b" font-size="8">joiner.py</text>
+          <text x="365" y="85" text-anchor="middle" fill="#64748b" font-size="8">mover.py</text>
+          <text x="365" y="98" text-anchor="middle" fill="#64748b" font-size="8">leaver.py</text>
+
+          <!-- Arrows -->
+          <!-- Client → FastAPI -->
+          <line x1="100" y1="170" x2="163" y2="155" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#a1)"/>
+          <text x="128" y="153" text-anchor="middle" fill="#3b82f6" font-size="8">Bearer JWT</text>
+
+          <!-- FastAPI ↔ Keycloak -->
+          <line x1="215" y1="190" x2="215" y2="228" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#a2)"/>
+          <text x="230" y="214" fill="#10b981" font-size="8">JWKS / token</text>
+
+          <!-- Keycloak → PostgreSQL -->
+          <line x1="265" y1="270" x2="318" y2="270" stroke="#0ea5e9" stroke-width="1.5" marker-end="url(#a3)"/>
+          <text x="290" y="263" text-anchor="middle" fill="#0ea5e9" font-size="8">JDBC</text>
+
+          <!-- JML → Keycloak -->
+          <path d="M330 110 L215 228" fill="none" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#a4)"/>
+          <text x="295" y="175" fill="#f59e0b" font-size="8">Admin API</text>
+
+          <defs>
+            <marker id="a1" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#3b82f6"/>
+            </marker>
+            <marker id="a2" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#10b981"/>
+            </marker>
+            <marker id="a3" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#0ea5e9"/>
+            </marker>
+            <marker id="a4" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+              <polygon points="0 0,8 3,0 6" fill="#f59e0b"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page-relatorio -->
+
+
+<!-- ===================================================
+     TAB: AUTENTICAÇÃO
+     =================================================== -->
 <div id="page-auth">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
 
@@ -109,7 +489,7 @@
         <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Password</label>
         <input class="input" id="login-password" type="password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
       </div>
-      <div style="margin-bottom:16px;" id="otp-row" style="display:none;">
+      <div id="otp-row" style="margin-bottom:16px;display:none;">
         <label style="font-size:12px;color:#c4b5fd;display:block;margin-bottom:4px;">Código OTP <span style="color:#475569;">(apenas para admin com MFA)</span></label>
         <input class="input" id="login-otp" type="text" inputmode="numeric" maxlength="6" placeholder="6 dígitos do Authenticator" onkeydown="if(event.key==='Enter')doLogin()" style="letter-spacing:0.3em;font-family:monospace;">
       </div>
@@ -170,8 +550,7 @@
           1. Abre <code style="color:#3b82f6;">http://localhost:8081/realms/iam-tp/account</code> → login com <code>admin.user</code> + TOTP<br>
           2. Abre as DevTools (F12) → Application → Local Storage ou Network → copia o <code>access_token</code><br>
           <strong style="color:#facc15;">Em alternativa:</strong> corre no terminal:<br>
-          <code style="color:#4ade80;font-size:11px;">curl -s -X POST http://localhost:8081/realms/iam-tp/protocol/openid-connect/token -d "grant_type=password&client_id=fastapi-client&client_secret=Admin123!&username=admin.user&password=Admin@1234" | python3 -m json.tool</code><br>
-          <span style="color:#475569;font-size:11px;">(funciona apenas se o CONFIGURE_TOTP já foi concluído — o token terá <code>amr: ["otp"]</code>)</span>
+          <code style="color:#4ade80;font-size:11px;">curl -s -X POST http://localhost:8081/realms/iam-tp/protocol/openid-connect/token -d "grant_type=password&client_id=fastapi-client&client_secret=Admin123!&username=admin.user&password=Admin@1234" | python3 -m json.tool</code>
         </div>
         <label style="font-size:12px;color:#64748b;display:block;margin-bottom:6px;">Colar Bearer token (JWT)</label>
         <textarea class="input" id="paste-token" rows="3" placeholder="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..." style="font-family:monospace;font-size:11px;resize:vertical;"></textarea>
@@ -227,9 +606,12 @@
       <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ Realm: iam-tp</span>
     </div>
   </div>
-</div>
+</div><!-- /page-auth -->
 
-<!-- ===================== TAB: AUTORIZAÇÃO ===================== -->
+
+<!-- ===================================================
+     TAB: AUTORIZAÇÃO
+     =================================================== -->
 <div id="page-rbac" style="display:none;">
   <div class="card" style="padding:24px;margin-bottom:24px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
@@ -242,11 +624,7 @@
     <table>
       <thead>
         <tr>
-          <th>Método</th>
-          <th>Endpoint</th>
-          <th>Role necessária</th>
-          <th>Resultado</th>
-          <th></th>
+          <th>Método</th><th>Endpoint</th><th>Role necessária</th><th>Resultado</th><th></th>
         </tr>
       </thead>
       <tbody id="endpoints-table"></tbody>
@@ -282,9 +660,12 @@
       🔒 <strong>/admin/mfa-area</strong> exige role <code>admin</code> <em>e</em> autenticação MFA comprovada no JWT — verifica os claims <code>amr</code> (ex: <code>["otp"]</code>) e <code>acr</code>. Sem MFA → 403 mesmo com token admin válido.
     </div>
   </div>
-</div>
+</div><!-- /page-rbac -->
 
-<!-- ===================== TAB: JML ===================== -->
+
+<!-- ===================================================
+     TAB: JML
+     =================================================== -->
 <div id="page-jml" style="display:none;">
   <div id="no-admin-jml" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
     ⚠️ Esta área requer role <strong>admin</strong>. Faça login como <code>admin.user</code>.
@@ -382,16 +763,18 @@
     </div>
     <div id="users-list"><p style="color:#475569;font-size:14px;">A carregar...</p></div>
   </div>
-</div>
+</div><!-- /page-jml -->
 
-<!-- ===================== TAB: AUDITORIA ===================== -->
+
+<!-- ===================================================
+     TAB: AUDITORIA
+     =================================================== -->
 <div id="page-audit" style="display:none;">
   <div id="no-admin-audit" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
     ⚠️ Esta área requer role <strong>admin</strong>. Faça login como <code>admin.user</code>.
   </div>
 
   <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px;">
-    <!-- Events table -->
     <div class="card" style="padding:24px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Eventos de Utilizador</h2>
@@ -415,77 +798,61 @@
       </div>
     </div>
 
-    <!-- Summary chart -->
     <div class="card" style="padding:24px;">
       <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;">Resumo por Tipo</h2>
       <div id="audit-chart"><p style="color:#475569;font-size:14px;">A carregar...</p></div>
     </div>
   </div>
 
-  <!-- Admin events -->
   <div class="card" style="padding:24px;">
     <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;">Eventos Administrativos (JML)</h2>
     <div id="admin-events-wrap" style="max-height:300px;overflow-y:auto;">
       <p style="color:#475569;font-size:14px;">A carregar eventos admin...</p>
     </div>
   </div>
-</div>
+</div><!-- /page-audit -->
 
-<!-- ===================== TAB: ARQUITETURA ===================== -->
+
+<!-- ===================================================
+     TAB: ARQUITETURA
+     =================================================== -->
 <div id="page-arch" style="display:none;">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
 
-    <!-- Diagram -->
     <div class="card" style="padding:24px;">
       <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:20px;">Diagrama de Arquitetura</h2>
       <svg viewBox="0 0 480 320" style="width:100%;background:#0f172a;border-radius:8px;padding:8px;">
-        <!-- Browser -->
         <rect x="20" y="130" width="80" height="60" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
         <text x="60" y="156" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">Browser</text>
         <text x="60" y="170" text-anchor="middle" fill="#475569" font-size="9">Dashboard</text>
         <text x="60" y="182" text-anchor="middle" fill="#475569" font-size="9">:8000</text>
-
-        <!-- FastAPI -->
         <rect x="190" y="100" width="100" height="70" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
         <text x="240" y="126" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">FastAPI</text>
         <text x="240" y="140" text-anchor="middle" fill="#475569" font-size="9">RBAC + JWT</text>
         <text x="240" y="153" text-anchor="middle" fill="#475569" font-size="9">validation</text>
         <text x="240" y="166" text-anchor="middle" fill="#10b981" font-size="9">:8000</text>
-
-        <!-- Keycloak -->
         <rect x="190" y="220" width="100" height="70" rx="6" fill="#1e293b" stroke="#8b5cf6" stroke-width="1.5"/>
         <text x="240" y="246" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">Keycloak 26</text>
         <text x="240" y="260" text-anchor="middle" fill="#475569" font-size="9">OIDC / SSO</text>
         <text x="240" y="273" text-anchor="middle" fill="#475569" font-size="9">Admin API</text>
         <text x="240" y="286" text-anchor="middle" fill="#8b5cf6" font-size="9">:8081</text>
-
-        <!-- PostgreSQL -->
         <rect x="370" y="220" width="90" height="70" rx="6" fill="#1e293b" stroke="#0ea5e9" stroke-width="1.5"/>
         <text x="415" y="246" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">PostgreSQL</text>
         <text x="415" y="260" text-anchor="middle" fill="#475569" font-size="9">Keycloak DB</text>
         <text x="415" y="273" text-anchor="middle" fill="#475569" font-size="9">user store</text>
         <text x="415" y="286" text-anchor="middle" fill="#0ea5e9" font-size="9">:5432</text>
-
-        <!-- Browser → FastAPI -->
         <line x1="100" y1="160" x2="190" y2="140" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
         <text x="142" y="143" text-anchor="middle" fill="#3b82f6" font-size="8">Bearer JWT</text>
-
-        <!-- FastAPI ↔ Keycloak (JWKS) -->
         <line x1="240" y1="170" x2="240" y2="220" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr)"/>
         <text x="254" y="200" fill="#10b981" font-size="8">JWKS / Admin</text>
-
-        <!-- Keycloak → PostgreSQL -->
         <line x1="290" y1="255" x2="370" y2="255" stroke="#0ea5e9" stroke-width="1.5" marker-end="url(#arr)"/>
         <text x="328" y="248" text-anchor="middle" fill="#0ea5e9" font-size="8">JDBC</text>
-
-        <!-- JML label -->
         <rect x="360" y="100" width="110" height="60" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
         <text x="415" y="120" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="bold">JML Scripts</text>
         <text x="415" y="133" text-anchor="middle" fill="#475569" font-size="8">Joiner</text>
         <text x="415" y="145" text-anchor="middle" fill="#475569" font-size="8">Mover</text>
         <text x="415" y="157" text-anchor="middle" fill="#475569" font-size="8">Leaver</text>
         <line x1="370" y1="130" x2="290" y2="255" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr2)"/>
-
         <defs>
           <marker id="arr" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
             <polygon points="0 0, 8 3, 0 6" fill="#475569"/>
@@ -497,89 +864,52 @@
       </svg>
     </div>
 
-    <!-- Evaluation checklist -->
     <div class="card" style="padding:24px;">
       <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;">Critérios de Avaliação (0–20)</h2>
       <div style="display:flex;flex-direction:column;gap:10px;">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #10b981;">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">Arquitetura e coerência técnica</div>
-            <div style="font-size:11px;color:#475569;">Keycloak + FastAPI + PostgreSQL · Docker Compose · realm-export.json</div>
-          </div>
+          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">Arquitetura e coerência técnica</div><div style="font-size:11px;color:#475569;">Keycloak + FastAPI + PostgreSQL · Docker Compose · realm-export.json</div></div>
           <div style="font-size:12px;font-weight:700;color:#10b981;">20%</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #3b82f6;">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">Autenticação / Federação</div>
-            <div style="font-size:11px;color:#475569;">OIDC via Keycloak · JWT RS256 · claims: sub, email, roles</div>
-          </div>
+          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">Autenticação / Federação</div><div style="font-size:11px;color:#475569;">OIDC via Keycloak · JWT RS256 · claims: sub, email, roles</div></div>
           <div style="font-size:12px;font-weight:700;color:#3b82f6;">15%</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #6366f1;">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">Autorização (RBAC)</div>
-            <div style="font-size:11px;color:#475569;">3 roles · endpoints protegidos · 200/403 demonstrável</div>
-          </div>
+          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">Autorização (RBAC)</div><div style="font-size:11px;color:#475569;">3 roles · endpoints protegidos · 200/403 demonstrável</div></div>
           <div style="font-size:12px;font-weight:700;color:#6366f1;">15%</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #f59e0b;">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">JML (Joiner · Mover · Leaver)</div>
-            <div style="font-size:11px;color:#475569;">Via Keycloak Admin REST API · revogação de sessões</div>
-          </div>
+          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">JML (Joiner · Mover · Leaver)</div><div style="font-size:11px;color:#475569;">Via Keycloak Admin REST API · revogação de sessões</div></div>
           <div style="font-size:12px;font-weight:700;color:#f59e0b;">15%</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #ec4899;">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">MFA (TOTP via Keycloak)</div>
-            <div style="font-size:11px;color:#475569;">admin.user → CONFIGURE_TOTP required · browser-mfa flow</div>
-          </div>
+          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">MFA (TOTP via Keycloak)</div><div style="font-size:11px;color:#475569;">admin.user → CONFIGURE_TOTP required · browser-mfa flow</div></div>
           <div style="font-size:12px;font-weight:700;color:#ec4899;">15%</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #14b8a6;">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">Auditoria e segurança</div>
-            <div style="font-size:11px;color:#475569;">Keycloak events · LOGIN/LOGOUT/ERRORS · admin events</div>
-          </div>
+          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">Auditoria e segurança</div><div style="font-size:11px;color:#475569;">Keycloak events · LOGIN/LOGOUT/ERRORS · admin events</div></div>
           <div style="font-size:12px;font-weight:700;color:#14b8a6;">10%</div>
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #64748b;">
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#f1f5f9;">Qualidade da demonstração</div>
-            <div style="font-size:11px;color:#475569;">Este dashboard · demo ao vivo · 10 minutos</div>
-          </div>
+          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">Qualidade da demonstração</div><div style="font-size:11px;color:#475569;">Este dashboard · demo ao vivo · 10 minutos</div></div>
           <div style="font-size:12px;font-weight:700;color:#64748b;">10%</div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Stack info + MFA instructions -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
     <div class="card" style="padding:24px;">
       <h2 style="font-size:14px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:16px;">Stack Técnica</h2>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
-          <span style="font-size:13px;color:#94a3b8;">Keycloak</span><span style="font-size:13px;color:#8b5cf6;font-weight:600;">26.2.5</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
-          <span style="font-size:13px;color:#94a3b8;">PostgreSQL</span><span style="font-size:13px;color:#0ea5e9;font-weight:600;">16-alpine</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
-          <span style="font-size:13px;color:#94a3b8;">Python</span><span style="font-size:13px;color:#f59e0b;font-weight:600;">3.12-slim</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
-          <span style="font-size:13px;color:#94a3b8;">FastAPI</span><span style="font-size:13px;color:#10b981;font-weight:600;">0.115.12</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
-          <span style="font-size:13px;color:#94a3b8;">JWT lib</span><span style="font-size:13px;color:#3b82f6;font-weight:600;">python-jose 3.3.0</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
-          <span style="font-size:13px;color:#94a3b8;">Algoritmo</span><span style="font-size:13px;color:#ec4899;font-weight:600;">RS256 (JWKS)</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;">
-          <span style="font-size:13px;color:#94a3b8;">Realm</span><span style="font-size:13px;color:#f1f5f9;font-weight:600;">iam-tp</span>
-        </div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">Keycloak</span><span style="font-size:13px;color:#8b5cf6;font-weight:600;">26.2.5</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">PostgreSQL</span><span style="font-size:13px;color:#0ea5e9;font-weight:600;">16-alpine</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">Python</span><span style="font-size:13px;color:#f59e0b;font-weight:600;">3.12-slim</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">FastAPI</span><span style="font-size:13px;color:#10b981;font-weight:600;">0.115.12</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">JWT lib</span><span style="font-size:13px;color:#3b82f6;font-weight:600;">python-jose 3.3.0</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">Algoritmo</span><span style="font-size:13px;color:#ec4899;font-weight:600;">RS256 (JWKS)</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">Realm</span><span style="font-size:13px;color:#f1f5f9;font-weight:600;">iam-tp</span></div>
       </div>
     </div>
 
@@ -612,9 +942,9 @@
       </div>
     </div>
   </div>
-</div>
+</div><!-- /page-arch -->
 
-</div><!-- end main container -->
+</div><!-- /main -->
 
 <script>
 const API = '';
@@ -623,34 +953,34 @@ let currentUser = null;
 let tokenExpiry = null;
 let expiryInterval = null;
 
+const TABS = ['relatorio','auth','rbac','jml','audit','arch'];
+
 const ENDPOINTS = [
-  { method:'GET', path:'/health',            role:'—',               desc:'Health check' },
-  { method:'GET', path:'/public',            role:'—',               desc:'Recurso público' },
-  { method:'GET', path:'/me',                role:'qualquer token',  desc:'Claims do utilizador' },
-  { method:'GET', path:'/colaborador/data',  role:'colaborador | admin', desc:'Dados colaborador' },
-  { method:'GET', path:'/colaborador/perfil',role:'colaborador | admin', desc:'Perfil colaborador' },
-  { method:'GET', path:'/admin/users',       role:'admin',           desc:'Lista utilizadores' },
-  { method:'GET', path:'/admin/audit',       role:'admin',           desc:'Eventos de auditoria' },
-  { method:'GET', path:'/admin/audit/summary',role:'admin',          desc:'Resumo de auditoria' },
-  { method:'GET', path:'/admin/mfa-area',    role:'admin + MFA',     desc:'Área protegida por MFA (amr/acr)' },
+  { method:'GET', path:'/health',              role:'—',                   desc:'Health check' },
+  { method:'GET', path:'/public',              role:'—',                   desc:'Recurso público' },
+  { method:'GET', path:'/me',                  role:'qualquer token',      desc:'Claims do utilizador' },
+  { method:'GET', path:'/colaborador/data',    role:'colaborador | admin', desc:'Dados colaborador' },
+  { method:'GET', path:'/colaborador/perfil',  role:'colaborador | admin', desc:'Perfil colaborador' },
+  { method:'GET', path:'/admin/users',         role:'admin',               desc:'Lista utilizadores' },
+  { method:'GET', path:'/admin/audit',         role:'admin',               desc:'Eventos de auditoria' },
+  { method:'GET', path:'/admin/audit/summary', role:'admin',               desc:'Resumo de auditoria' },
+  { method:'GET', path:'/admin/mfa-area',      role:'admin + MFA',         desc:'Área protegida por MFA (amr/acr)' },
 ];
 
 function showTab(name) {
-  ['auth','rbac','jml','audit','arch'].forEach(t => {
-    document.getElementById('page-'+t).style.display = t===name ? '' : 'none';
-    const btn = document.getElementById('tab-'+t);
-    btn.className = t===name ? 'tab-active' : 'tab-inactive';
-    btn.style.cssText = 'padding:12px 20px;font-size:14px;font-weight:500;cursor:pointer;border:none;border-radius:4px 4px 0 0;';
+  TABS.forEach(t => {
+    document.getElementById('page-'+t).style.display = t === name ? '' : 'none';
+    document.getElementById('tab-'+t).classList.toggle('active', t === name);
   });
-  if (name==='rbac') renderEndpointsTable();
-  if (name==='jml')  { checkAdminGuard('no-admin-jml'); loadUsers(); }
-  if (name==='audit'){ checkAdminGuard('no-admin-audit'); loadAudit(); }
+  if (name === 'rbac')  renderEndpointsTable();
+  if (name === 'jml')   { checkAdminGuard('no-admin-jml'); loadUsers(); }
+  if (name === 'audit') { checkAdminGuard('no-admin-audit'); loadAudit(); }
 }
 
 function applyPreset() {
   const val = document.getElementById('user-preset').value;
-  if (!val || val==='custom') return;
-  const [u,p] = val.split('|');
+  if (!val || val === 'custom') return;
+  const [u, p] = val.split('|');
   document.getElementById('login-username').value = u;
   document.getElementById('login-password').value = p;
   document.getElementById('login-otp').value = '';
@@ -668,12 +998,12 @@ async function doLogin() {
   btn.innerHTML = '<span class="spinner"></span> A autenticar...';
   btn.disabled = true;
   try {
-    const r = await fetch(API+'/auth/token', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username, password, ...(totp && {totp})})
+    const r = await fetch(API + '/auth/token', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password, ...(totp && { totp }) })
     });
     const data = await r.json();
-    if (!r.ok) { showResult(resultEl, '❌ '+( data.detail || 'Credenciais inválidas'), 'err'); return; }
+    if (!r.ok) { showResult(resultEl, '❌ ' + (data.detail || 'Credenciais inválidas'), 'err'); return; }
 
     currentToken = data.access_token;
     const payload = parseJwt(currentToken);
@@ -683,8 +1013,8 @@ async function doLogin() {
     showResult(resultEl, '✅ Login efetuado com sucesso!', 'ok');
     document.getElementById('btn-logout').style.display = '';
     startExpiryCountdown();
-  } catch(e) {
-    showResult(resultEl, '❌ Erro de rede: '+e.message, 'err');
+  } catch (e) {
+    showResult(resultEl, '❌ Erro de rede: ' + e.message, 'err');
   } finally {
     btn.innerHTML = 'Entrar via Keycloak';
     btn.disabled = false;
@@ -693,23 +1023,24 @@ async function doLogin() {
 
 function doLogout() {
   currentToken = null; currentUser = null; tokenExpiry = null;
-  if(expiryInterval) clearInterval(expiryInterval);
+  if (expiryInterval) clearInterval(expiryInterval);
   document.getElementById('session-info').style.display = 'none';
   document.getElementById('session-empty').style.display = '';
   document.getElementById('btn-logout').style.display = 'none';
-  document.getElementById('header-user').innerHTML = `<span style="font-size:12px;color:#475569;"><span class="pulse" style="display:inline-block;width:8px;height:8px;background:#10b981;border-radius:50%;margin-right:6px;"></span>API online</span>`;
+  document.getElementById('header-user').innerHTML =
+    `<span style="font-size:12px;color:#475569;"><span class="pulse" style="display:inline-block;width:8px;height:8px;background:#10b981;border-radius:50%;margin-right:6px;"></span>API online</span>`;
   document.getElementById('login-result').innerHTML = '';
 }
 
 function parseJwt(token) {
-  const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
   return JSON.parse(atob(base64));
 }
 
 function updateSessionUI(p) {
   const roles = p.realm_access?.roles || [];
   const username = p.preferred_username || p.sub;
-  const mainRole = roles.find(r=>['admin','colaborador','visitante'].includes(r)) || roles[0] || '—';
+  const mainRole = roles.find(r => ['admin','colaborador','visitante'].includes(r)) || roles[0] || '—';
 
   document.getElementById('session-empty').style.display = 'none';
   document.getElementById('session-info').style.display = '';
@@ -721,12 +1052,14 @@ function updateSessionUI(p) {
 
   const badge = document.getElementById('sess-role-badge');
   badge.textContent = mainRole;
-  badge.className = 'badge-'+mainRole;
+  badge.className = 'badge-' + mainRole;
   badge.style.cssText = 'margin-left:auto;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;';
 
   const rolesEl = document.getElementById('sess-roles');
-  rolesEl.innerHTML = roles.filter(r=>!['default-roles-iam-tp','offline_access','uma_authorization'].includes(r))
-    .map(r=>`<span class="badge-${['admin','colaborador','visitante'].includes(r)?r:'none'}" style="padding:2px 10px;border-radius:20px;font-size:12px;">${r}</span>`).join('');
+  rolesEl.innerHTML = roles
+    .filter(r => !['default-roles-iam-tp','offline_access','uma_authorization'].includes(r))
+    .map(r => `<span class="badge-${['admin','colaborador','visitante'].includes(r) ? r : 'none'}" style="padding:2px 10px;border-radius:20px;font-size:12px;">${r}</span>`)
+    .join('');
 
   document.getElementById('header-user').innerHTML = `
     <span style="display:flex;align-items:center;gap:8px;">
@@ -737,14 +1070,14 @@ function updateSessionUI(p) {
 }
 
 function startExpiryCountdown() {
-  if(expiryInterval) clearInterval(expiryInterval);
+  if (expiryInterval) clearInterval(expiryInterval);
   function update() {
     if (!tokenExpiry) return;
-    const left = tokenExpiry - Math.floor(Date.now()/1000);
+    const left = tokenExpiry - Math.floor(Date.now() / 1000);
     const el = document.getElementById('sess-expiry');
     if (!el) return;
     if (left <= 0) { el.textContent = 'Expirado'; el.style.color = '#f87171'; }
-    else { const m=Math.floor(left/60), s=left%60; el.textContent = `${m}m ${s}s`; el.style.color = left<60?'#f87171':'#4ade80'; }
+    else { const m = Math.floor(left / 60), s = left % 60; el.textContent = `${m}m ${s}s`; el.style.color = left < 60 ? '#f87171' : '#4ade80'; }
   }
   update();
   expiryInterval = setInterval(update, 1000);
@@ -760,29 +1093,22 @@ function renderEndpointsTable() {
       <td id="res-${e.path.replace(/\//g,'_')}"><span style="color:#475569;font-size:12px;">—</span></td>
       <td><button class="btn-ghost" style="font-size:12px;padding:4px 12px;" onclick="testEndpoint('${e.path}','${e.method}')">Testar</button></td>
     </tr>`).join('');
-  const warn = document.getElementById('no-token-rbac');
-  warn.style.display = currentToken ? 'none' : '';
+  document.getElementById('no-token-rbac').style.display = currentToken ? 'none' : '';
 }
 
 async function testEndpoint(path, method) {
-  const key = path.replace(/\//g,'_');
-  const el = document.getElementById('res-'+key);
+  const key = path.replace(/\//g, '_');
+  const el = document.getElementById('res-' + key);
   el.innerHTML = '<span class="spinner"></span>';
-  const headers = {'Content-Type':'application/json'};
-  if (currentToken) headers['Authorization'] = 'Bearer '+currentToken;
+  const headers = { 'Content-Type': 'application/json' };
+  if (currentToken) headers['Authorization'] = 'Bearer ' + currentToken;
   try {
-    const r = await fetch(API+path, {method, headers});
-    const data = await r.json().catch(()=>({}));
-    if (r.ok) {
-      el.innerHTML = `<span style="color:#4ade80;font-size:13px;">✅ ${r.status}</span>`;
-    } else if (r.status===401) {
-      el.innerHTML = `<span style="color:#facc15;font-size:13px;">⚠️ 401 Sem token</span>`;
-    } else if (r.status===403) {
-      el.innerHTML = `<span style="color:#f87171;font-size:13px;">❌ 403 Acesso negado</span>`;
-    } else {
-      el.innerHTML = `<span style="color:#f87171;font-size:13px;">❌ ${r.status}</span>`;
-    }
-  } catch(e) {
+    const r = await fetch(API + path, { method, headers });
+    if (r.ok)            el.innerHTML = `<span style="color:#4ade80;font-size:13px;">✅ ${r.status}</span>`;
+    else if (r.status===401) el.innerHTML = `<span style="color:#facc15;font-size:13px;">⚠️ 401 Sem token</span>`;
+    else if (r.status===403) el.innerHTML = `<span style="color:#f87171;font-size:13px;">❌ 403 Acesso negado</span>`;
+    else                 el.innerHTML = `<span style="color:#f87171;font-size:13px;">❌ ${r.status}</span>`;
+  } catch (e) {
     el.innerHTML = `<span style="color:#f87171;font-size:12px;">⚠️ Erro rede</span>`;
   }
 }
@@ -801,19 +1127,19 @@ async function loadUsers() {
   if (!currentToken) { el.innerHTML = '<p style="color:#475569;font-size:14px;">Sem token ativo.</p>'; return; }
   el.innerHTML = '<span class="spinner"></span> A carregar...';
   try {
-    const r = await fetch(API+'/admin/users', {headers:{Authorization:'Bearer '+currentToken}});
+    const r = await fetch(API + '/admin/users', { headers: { Authorization: 'Bearer ' + currentToken } });
     const data = await r.json();
-    if (!r.ok) { el.innerHTML = `<p style="color:#f87171;font-size:13px;">${data.detail||'Erro'}</p>`; return; }
+    if (!r.ok) { el.innerHTML = `<p style="color:#f87171;font-size:13px;">${data.detail || 'Erro'}</p>`; return; }
     el.innerHTML = `<table>
       <thead><tr><th>Username</th><th>Email</th><th>Estado</th><th>Criado</th></tr></thead>
-      <tbody>${data.users.map(u=>`<tr>
+      <tbody>${data.users.map(u => `<tr>
         <td style="font-weight:600;color:#f1f5f9;">${u.username}</td>
-        <td style="color:#64748b;">${u.email||'—'}</td>
-        <td><span style="padding:2px 8px;border-radius:20px;font-size:12px;${u.enabled?'background:#052e16;color:#4ade80;':'background:#2d0000;color:#f87171;'}">${u.enabled?'Ativo':'Desativado'}</span></td>
-        <td style="color:#475569;font-size:12px;">${u.createdTimestamp?new Date(u.createdTimestamp).toLocaleDateString('pt-PT'):'—'}</td>
+        <td style="color:#64748b;">${u.email || '—'}</td>
+        <td><span style="padding:2px 8px;border-radius:20px;font-size:12px;${u.enabled ? 'background:#052e16;color:#4ade80;' : 'background:#2d0000;color:#f87171;'}">${u.enabled ? 'Ativo' : 'Desativado'}</span></td>
+        <td style="color:#475569;font-size:12px;">${u.createdTimestamp ? new Date(u.createdTimestamp).toLocaleDateString('pt-PT') : '—'}</td>
       </tr>`).join('')}</tbody>
     </table>`;
-  } catch(e) { el.innerHTML = `<p style="color:#f87171;">Erro: ${e.message}</p>`; }
+  } catch (e) { el.innerHTML = `<p style="color:#f87171;">Erro: ${e.message}</p>`; }
 }
 
 async function doJoiner() {
@@ -824,40 +1150,40 @@ async function doJoiner() {
     password: document.getElementById('j-password').value.trim() || 'Temp@1234',
   };
   const el = document.getElementById('joiner-result');
-  if (!body.username || !body.email) { showResult(el,'❌ Username e email obrigatórios','err'); return; }
-  showResult(el,'<span class="spinner"></span> A criar utilizador...','');
+  if (!body.username || !body.email) { showResult(el, '❌ Username e email obrigatórios', 'err'); return; }
+  showResult(el, '<span class="spinner"></span> A criar utilizador...', '');
   try {
-    const r = await fetch(API+'/admin/jml/joiner',{method:'POST',headers:{Authorization:'Bearer '+currentToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const r = await fetch(API + '/admin/jml/joiner', { method: 'POST', headers: { Authorization: 'Bearer ' + currentToken, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await r.json();
-    if (r.ok) { showResult(el,'✅ '+data.message,'ok'); loadUsers(); }
-    else showResult(el,'❌ '+(data.detail||JSON.stringify(data)),'err');
-  } catch(e){ showResult(el,'❌ '+e.message,'err'); }
+    if (r.ok) { showResult(el, '✅ ' + data.message, 'ok'); loadUsers(); }
+    else showResult(el, '❌ ' + (data.detail || JSON.stringify(data)), 'err');
+  } catch (e) { showResult(el, '❌ ' + e.message, 'err'); }
 }
 
 async function doMover() {
-  const body = {username:document.getElementById('m-username').value.trim(),old_role:document.getElementById('m-old-role').value,new_role:document.getElementById('m-new-role').value};
+  const body = { username: document.getElementById('m-username').value.trim(), old_role: document.getElementById('m-old-role').value, new_role: document.getElementById('m-new-role').value };
   const el = document.getElementById('mover-result');
-  if (!body.username){ showResult(el,'❌ Username obrigatório','err'); return; }
-  showResult(el,'<span class="spinner"></span> A mover utilizador...','');
+  if (!body.username) { showResult(el, '❌ Username obrigatório', 'err'); return; }
+  showResult(el, '<span class="spinner"></span> A mover utilizador...', '');
   try {
-    const r = await fetch(API+'/admin/jml/mover',{method:'POST',headers:{Authorization:'Bearer '+currentToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const r = await fetch(API + '/admin/jml/mover', { method: 'POST', headers: { Authorization: 'Bearer ' + currentToken, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     const data = await r.json();
-    if (r.ok){ showResult(el,'✅ '+data.message,'ok'); loadUsers(); }
-    else showResult(el,'❌ '+(data.detail||JSON.stringify(data)),'err');
-  } catch(e){ showResult(el,'❌ '+e.message,'err'); }
+    if (r.ok) { showResult(el, '✅ ' + data.message, 'ok'); loadUsers(); }
+    else showResult(el, '❌ ' + (data.detail || JSON.stringify(data)), 'err');
+  } catch (e) { showResult(el, '❌ ' + e.message, 'err'); }
 }
 
 async function doLeaver() {
   const username = document.getElementById('l-username').value.trim();
   const el = document.getElementById('leaver-result');
-  if (!username){ showResult(el,'❌ Username obrigatório','err'); return; }
-  showResult(el,'<span class="spinner"></span> A desativar utilizador...','');
+  if (!username) { showResult(el, '❌ Username obrigatório', 'err'); return; }
+  showResult(el, '<span class="spinner"></span> A desativar utilizador...', '');
   try {
-    const r = await fetch(API+'/admin/jml/leaver',{method:'POST',headers:{Authorization:'Bearer '+currentToken,'Content-Type':'application/json'},body:JSON.stringify({username})});
+    const r = await fetch(API + '/admin/jml/leaver', { method: 'POST', headers: { Authorization: 'Bearer ' + currentToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) });
     const data = await r.json();
-    if (r.ok){ showResult(el,'✅ '+data.message,'ok'); loadUsers(); }
-    else showResult(el,'❌ '+(data.detail||JSON.stringify(data)),'err');
-  } catch(e){ showResult(el,'❌ '+e.message,'err'); }
+    if (r.ok) { showResult(el, '✅ ' + data.message, 'ok'); loadUsers(); }
+    else showResult(el, '❌ ' + (data.detail || JSON.stringify(data)), 'err');
+  } catch (e) { showResult(el, '❌ ' + e.message, 'err'); }
 }
 
 async function loadAudit() {
@@ -865,71 +1191,68 @@ async function loadAudit() {
   const tableEl = document.getElementById('audit-table-wrap');
   const chartEl = document.getElementById('audit-chart');
   const adminEl = document.getElementById('admin-events-wrap');
-  if (!currentToken){ tableEl.innerHTML='<p style="color:#475569;font-size:14px;">Sem token ativo.</p>'; return; }
+  if (!currentToken) { tableEl.innerHTML = '<p style="color:#475569;font-size:14px;">Sem token ativo.</p>'; return; }
 
   tableEl.innerHTML = '<span class="spinner"></span>';
   chartEl.innerHTML = '<span class="spinner"></span>';
   adminEl.innerHTML = '<span class="spinner"></span>';
 
   try {
-    const params = new URLSearchParams({max_events:50});
-    if(filter) params.set('event_type',filter);
+    const params = new URLSearchParams({ max_events: 50 });
+    if (filter) params.set('event_type', filter);
     const [auditR, summaryR] = await Promise.all([
-      fetch(API+'/admin/audit?'+params, {headers:{Authorization:'Bearer '+currentToken}}),
-      fetch(API+'/admin/audit/summary', {headers:{Authorization:'Bearer '+currentToken}}),
+      fetch(API + '/admin/audit?' + params, { headers: { Authorization: 'Bearer ' + currentToken } }),
+      fetch(API + '/admin/audit/summary', { headers: { Authorization: 'Bearer ' + currentToken } }),
     ]);
     const audit = await auditR.json();
     const summary = await summaryR.json();
 
-    // User events table
     const evs = audit.user_events || [];
-    tableEl.innerHTML = evs.length===0 ? '<p style="color:#475569;font-size:14px;padding:16px;">Sem eventos encontrados.</p>' :
+    tableEl.innerHTML = evs.length === 0 ? '<p style="color:#475569;font-size:14px;padding:16px;">Sem eventos encontrados.</p>' :
       `<table><thead><tr><th>Tipo</th><th>Utilizador</th><th>IP</th><th>Data/Hora</th></tr></thead><tbody>${
-        evs.map(e=>`<tr>
-          <td><span style="font-size:12px;padding:2px 8px;border-radius:4px;${e.type?.includes('ERROR')?'background:#2d0000;color:#f87171;':'background:#052e16;color:#4ade80;'}">${e.type||'—'}</span></td>
-          <td style="font-size:13px;color:#94a3b8;">${e.details?.username||e.userId?.slice(0,8)+'...'||'—'}</td>
-          <td style="font-size:12px;color:#475569;">${e.ipAddress||'—'}</td>
-          <td style="font-size:12px;color:#475569;">${e.time?new Date(e.time).toLocaleString('pt-PT'):'—'}</td>
+        evs.map(e => `<tr>
+          <td><span style="font-size:12px;padding:2px 8px;border-radius:4px;${e.type?.includes('ERROR') ? 'background:#2d0000;color:#f87171;' : 'background:#052e16;color:#4ade80;'}">${e.type || '—'}</span></td>
+          <td style="font-size:13px;color:#94a3b8;">${e.details?.username || e.userId?.slice(0, 8) + '...' || '—'}</td>
+          <td style="font-size:12px;color:#475569;">${e.ipAddress || '—'}</td>
+          <td style="font-size:12px;color:#475569;">${e.time ? new Date(e.time).toLocaleString('pt-PT') : '—'}</td>
         </tr>`).join('')
       }</tbody></table>`;
 
-    // Chart
     const byType = summary.by_type || {};
-    const entries = Object.entries(byType).sort((a,b)=>b[1]-a[1]).slice(0,10);
-    const max = Math.max(...entries.map(e=>e[1]),1);
-    chartEl.innerHTML = `<div style="font-size:12px;color:#475569;margin-bottom:8px;">Total: ${summary.total} eventos</div>`+
-      entries.map(([t,c])=>`<div style="margin-bottom:6px;">
+    const entries = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const max = Math.max(...entries.map(e => e[1]), 1);
+    chartEl.innerHTML = `<div style="font-size:12px;color:#475569;margin-bottom:8px;">Total: ${summary.total} eventos</div>` +
+      (entries.map(([t, c]) => `<div style="margin-bottom:6px;">
         <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:2px;"><span>${t}</span><span style="font-weight:600;">${c}</span></div>
-        <div style="background:#1e293b;border-radius:4px;height:16px;"><div class="bar" style="width:${Math.max(8,(c/max)*100)}%;height:16px;"></div></div>
-      </div>`).join('') || '<p style="color:#475569;font-size:13px;">Sem dados</p>';
+        <div style="background:#1e293b;border-radius:4px;height:16px;"><div class="bar" style="width:${Math.max(8, (c / max) * 100)}%;height:16px;"></div></div>
+      </div>`).join('') || '<p style="color:#475569;font-size:13px;">Sem dados</p>');
 
-    // Admin events
     const admEvs = audit.admin_events || [];
-    adminEl.innerHTML = admEvs.length===0 ? '<p style="color:#475569;font-size:14px;padding:8px;">Sem eventos admin encontrados.</p>' :
+    adminEl.innerHTML = admEvs.length === 0 ? '<p style="color:#475569;font-size:14px;padding:8px;">Sem eventos admin encontrados.</p>' :
       `<table><thead><tr><th>Operação</th><th>Recurso</th><th>Representação</th><th>Data/Hora</th></tr></thead><tbody>${
-        admEvs.map(e=>`<tr>
-          <td><span style="font-size:12px;padding:2px 8px;border-radius:4px;background:#1c1400;color:#facc15;">${e.operationType||'—'}</span></td>
-          <td style="font-size:12px;color:#64748b;">${e.resourceType||'—'}</td>
-          <td style="font-size:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${JSON.stringify(e.representation||{})}</td>
-          <td style="font-size:12px;color:#475569;">${e.time?new Date(e.time).toLocaleString('pt-PT'):'—'}</td>
+        admEvs.map(e => `<tr>
+          <td><span style="font-size:12px;padding:2px 8px;border-radius:4px;background:#1c1400;color:#facc15;">${e.operationType || '—'}</span></td>
+          <td style="font-size:12px;color:#64748b;">${e.resourceType || '—'}</td>
+          <td style="font-size:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${JSON.stringify(e.representation || {})}</td>
+          <td style="font-size:12px;color:#475569;">${e.time ? new Date(e.time).toLocaleString('pt-PT') : '—'}</td>
         </tr>`).join('')
       }</tbody></table>`;
 
-  } catch(e){ tableEl.innerHTML=`<p style="color:#f87171;">Erro: ${e.message}</p>`; }
+  } catch (e) { tableEl.innerHTML = `<p style="color:#f87171;">Erro: ${e.message}</p>`; }
 }
 
 function showResult(el, msg, type) {
-  const cls = type==='ok'?'result-ok':type==='err'?'result-err':'';
+  const cls = type === 'ok' ? 'result-ok' : type === 'err' ? 'result-err' : '';
   el.innerHTML = `<div class="${cls}" style="padding:10px;border-radius:6px;font-size:13px;">${msg}</div>`;
 }
 
 function usePastedToken() {
-  const raw = document.getElementById('paste-token').value.trim().replace(/^Bearer\s+/i,'');
+  const raw = document.getElementById('paste-token').value.trim().replace(/^Bearer\s+/i, '');
   const el = document.getElementById('paste-result');
   if (!raw) { showResult(el, '❌ Cola um token JWT válido.', 'err'); return; }
   try {
     const payload = parseJwt(raw);
-    const now = Math.floor(Date.now()/1000);
+    const now = Math.floor(Date.now() / 1000);
     if (payload.exp && payload.exp < now) { showResult(el, '⚠️ Token expirado — obtém um novo.', 'err'); return; }
     currentToken = raw;
     currentUser = payload;
@@ -943,12 +1266,12 @@ function usePastedToken() {
       : `<span style="color:#facc15;">⚠️ Token sem MFA (amr: ${JSON.stringify(amr)}) — /admin/mfa-area retornará 403</span>`;
     showResult(el, `✅ Token carregado como <strong>${payload.preferred_username}</strong>. ${mfaNote}`, 'ok');
     document.getElementById('btn-logout').style.display = '';
-  } catch(e) {
+  } catch (e) {
     showResult(el, '❌ JWT inválido ou mal formado: ' + e.message, 'err');
   }
 }
 
-// Init
+// Inicializar com tab Autenticação ativa (sem recarregar dados pesados)
 renderEndpointsTable();
 </script>
 </body>

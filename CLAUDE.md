@@ -103,6 +103,8 @@ docker cp <keycloak-container-id>:/tmp/realm-export.json ./realm-export.json
 
 `/admin/*` endpoints proxy calls to the Keycloak Admin REST API using a per-request service account token. The `/admin/jml/*` endpoints are API equivalents of the CLI scripts in `jml/`.
 
+`/auth/token` uses the Resource Owner Password Credentials grant (for testing convenience). The Keycloak client also supports Authorization Code + PKCE for browser-based flows.
+
 ### MFA Enforcement
 
 `require_mfa()` in `app/auth.py` checks the JWT's `amr` claim (Authentication Methods Reference) for any of: `otp`, `2fa`, `mfa`, `google_authenticator`, or detects `password` + OTP combination. It also checks `acr`. If MFA is not proven, it raises HTTP 403. `admin.user` has `CONFIGURE_TOTP` as a required action in `realm-export.json`, so the Keycloak browser flow forces TOTP enrollment.
@@ -115,12 +117,14 @@ This mapping is duplicated in three places — `ROLE_GROUP_MAP` in `app/routes/a
 
 ### Key Files
 
+- `app/main.py` — FastAPI app entry point; registers all routers and configures CORS middleware (allowed origins: `http://localhost:8000` and `http://localhost:8080` — update here if testing from other origins)
 - `app/config.py` — Pydantic Settings; derives all Keycloak URLs (JWKS, issuer, admin API, token) from base URL + realm name
 - `app/auth.py` — JWT validation (`python-jose`), `require_role()`, and `require_mfa()` FastAPI dependencies
-- `app/keycloak_client.py` — Admin API helpers used by FastAPI routes (`get_admin_token`, `get_user_id`, `get_role`, `get_group_id`). Uses `http://keycloak:8080` (Docker-internal hostname); cannot be called from outside the Docker network.
-- `jml/_keycloak_client.py` — Same helpers for the CLI scripts. Defaults to `http://localhost:8080` (overridable via `KEYCLOAK_URL`). Do not run inside the Docker network without setting `KEYCLOAK_URL=http://keycloak:8080`.
+- `app/keycloak_client.py` — Async Admin API helpers used by FastAPI routes (`get_admin_token`, `get_user_id`, `get_role`, `get_group_id`). Uses `http://keycloak:8080` (Docker-internal hostname); cannot be called from outside the Docker network.
+- `jml/_keycloak_client.py` — Synchronous equivalents for the CLI scripts. Defaults to `http://localhost:8080` (overridable via `KEYCLOAK_URL`). Do not run inside the Docker network without setting `KEYCLOAK_URL=http://keycloak:8080`.
 - `app/static/dashboard.html` — Single-page interactive UI for demonstrating auth, RBAC, JML, and audit features
 - `realm-export.json` — Versioned Keycloak realm snapshot; auto-imported on container start
+- `app/Dockerfile` — Starts uvicorn with `--reload`; Python file changes inside the container are picked up without a restart (useful when bind-mounting `app/` during development)
 
 ### Environment Variables
 

@@ -1,5 +1,8 @@
+import pathlib
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from routes import admin, colaborador, public
 
@@ -20,3 +23,9 @@ app.add_middleware(
 app.include_router(public.router)
 app.include_router(colaborador.router)
 app.include_router(admin.router)
+
+app.mount(
+    "/static",
+    StaticFiles(directory=pathlib.Path(__file__).parent / "static"),
+    name="static",
+)
