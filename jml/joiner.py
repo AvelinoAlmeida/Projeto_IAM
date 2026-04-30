@@ -38,8 +38,8 @@ def joiner(username: str, email: str, role: str, temp_password: str = "Temp@1234
         "lastName": "Novo",
         "enabled": True,
         "emailVerified": True,
-        "requiredActions": ["UPDATE_PASSWORD"],
-        "credentials": [{"type": "password", "value": temp_password, "temporary": True}],
+        "requiredActions": [],
+        "credentials": [{"type": "password", "value": temp_password, "temporary": False}],
     }
 
     resp = httpx.post(f"{ADMIN_API}/users", headers=headers, json=user_payload)
@@ -63,7 +63,7 @@ def joiner(username: str, email: str, role: str, temp_password: str = "Temp@1234
     resp.raise_for_status()
     print(f"[JOINER] Grupo '{group_name}' atribuído.")
 
-    print(f"[JOINER] Concluído. {username} pode fazer login com password temporária '{temp_password}'.")
+    print(f"[JOINER] Concluído. {username} pode fazer login com a password '{temp_password}'.")
 
 
 if __name__ == "__main__":

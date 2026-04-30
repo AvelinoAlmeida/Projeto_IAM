@@ -30,7 +30,8 @@ def mover(username: str, old_role: str, new_role: str) -> None:
     old_group_id = get_group_id(ROLE_TO_GROUP[old_role], headers)
     new_group_id = get_group_id(ROLE_TO_GROUP[new_role], headers)
 
-    resp = httpx.delete(
+    resp = httpx.request(
+        "DELETE",
         f"{ADMIN_API}/users/{user_id}/role-mappings/realm",
         headers=headers,
         json=[{"id": old_role_id, "name": old_role}],

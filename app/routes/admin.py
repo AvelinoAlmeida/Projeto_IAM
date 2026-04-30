@@ -158,15 +158,25 @@ async def jml_joiner(
                 "username": body.username,
                 "email": body.email,
                 "enabled": True,
-                "credentials": [{"type": "password", "value": body.password, "temporary": True}],
-                "requiredActions": ["UPDATE_PASSWORD"],
+                "credentials": [{"type": "password", "value": body.password, "temporary": False}],
+                "requiredActions": [],
             },
         )
-        if create_resp.status_code == 409:
-            raise HTTPException(status_code=409, detail=f"Utilizador '{body.username}' já existe")
-        create_resp.raise_for_status()
+        if create_resp.status_code not in (201, 204, 409):
+            create_resp.raise_for_status()
 
         user_id = await get_user_id(client, headers, body.username)
+        if create_resp.status_code == 409:
+            await client.put(
+                f"{settings.admin_api_url}/users/{user_id}",
+                headers=headers,
+                json={"email": body.email, "enabled": True, "emailVerified": True, "requiredActions": []},
+            )
+            await client.put(
+                f"{settings.admin_api_url}/users/{user_id}/reset-password",
+                headers=headers,
+                json={"type": "password", "value": body.password, "temporary": False},
+            )
         role = await get_role(client, headers, body.role)
         group_id = await get_group_id(client, headers, ROLE_GROUP_MAP[body.role])
 
@@ -180,7 +190,8 @@ async def jml_joiner(
             headers=headers,
         )
 
-    return {"ok": True, "user_id": user_id, "message": f"Utilizador '{body.username}' criado com role '{body.role}'"}
+    action = "atualizado" if create_resp.status_code == 409 else "criado"
+    return {"ok": True, "user_id": user_id, "message": f"Utilizador '{body.username}' {action} com role '{body.role}'"}
 
 
 @router.post("/jml/mover")
@@ -202,7 +213,8 @@ async def jml_mover(
         old_group_id = await get_group_id(client, headers, ROLE_GROUP_MAP[body.old_role])
         new_group_id = await get_group_id(client, headers, ROLE_GROUP_MAP[body.new_role])
 
-        await client.delete(
+        await client.request(
+            "DELETE",
             f"{settings.admin_api_url}/users/{user_id}/role-mappings/realm",
             headers=headers,
             json=[old_role],
@@ -253,7 +265,8 @@ async def jml_leaver(
         roles = [r for r in roles_resp.json() if not r.get("composite", False)]
 
         if roles:
-            await client.delete(
+            await client.request(
+                "DELETE",
                 f"{settings.admin_api_url}/users/{user_id}/role-mappings/realm",
                 headers=headers,
                 json=roles,

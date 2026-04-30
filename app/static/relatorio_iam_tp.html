@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório IAM TP - Gestão de Identidade</title>
+  <style>
+    :root {
+      --ink: #172033;
+      --muted: #536176;
+      --line: #d9e2ef;
+      --blue: #2563eb;
+      --green: #059669;
+      --red: #dc2626;
+      --amber: #d97706;
+      --bg: #f4f7fb;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      line-height: 1.48;
+    }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: #0f172a;
+      color: #e5e7eb;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, .18);
+    }
+    .toolbar strong { font-size: 15px; }
+    .toolbar a, .toolbar button {
+      border: 1px solid #334155;
+      color: #e5e7eb;
+      background: #1e293b;
+      border-radius: 8px;
+      padding: 8px 12px;
+      text-decoration: none;
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+    }
+    .report {
+      width: 210mm;
+      margin: 18px auto 40px;
+    }
+    .page {
+      min-height: 297mm;
+      padding: 17mm 18mm;
+      margin-bottom: 16px;
+      background: white;
+      box-shadow: 0 18px 50px rgba(15, 23, 42, .12);
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+    }
+    .page:last-child { page-break-after: auto; }
+    .cover {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        linear-gradient(145deg, rgba(37, 99, 235, .10), transparent 45%),
+        linear-gradient(35deg, rgba(5, 150, 105, .10), transparent 55%),
+        #ffffff;
+    }
+    .eyebrow {
+      color: var(--blue);
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: .14em;
+      font-weight: 800;
+    }
+    h1 {
+      margin: 12px 0 14px;
+      font-size: 42px;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 0 0 12px;
+      font-size: 25px;
+      color: #0f172a;
+      border-bottom: 2px solid var(--line);
+      padding-bottom: 8px;
+    }
+    h3 {
+      margin: 18px 0 6px;
+      font-size: 17px;
+      color: #1e3a8a;
+    }
+    p { margin: 0 0 10px; }
+    ul { margin: 6px 0 12px 20px; padding: 0; }
+    li { margin-bottom: 5px; }
+    code {
+      background: #eef4ff;
+      color: #1d4ed8;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 7px 8px;
+      vertical-align: top;
+    }
+    th {
+      background: #f1f5f9;
+      color: #334155;
+      text-align: left;
+    }
+    .lead {
+      font-size: 18px;
+      color: var(--muted);
+      max-width: 640px;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 28px;
+      font-size: 13px;
+    }
+    .meta div, .callout {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px 12px;
+      background: #f8fafc;
+    }
+    .callout {
+      border-left: 5px solid var(--blue);
+      margin: 12px 0;
+    }
+    .status-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 12px 0 18px;
+    }
+    .status {
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      padding: 12px;
+      background: #f8fafc;
+    }
+    .status b { display: block; color: var(--green); margin-bottom: 4px; }
+    .figure {
+      margin: 12px 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+    .figure img {
+      width: 100%;
+      display: block;
+    }
+    .caption {
+      padding: 8px 10px;
+      font-size: 11px;
+      color: var(--muted);
+      border-top: 1px solid var(--line);
+      background: #fff;
+    }
+    .badge {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      color: white;
+    }
+    .ok { background: var(--green); }
+    .warn { background: var(--amber); }
+    .deny { background: var(--red); }
+    .page-num {
+      position: absolute;
+      right: 18mm;
+      bottom: 10mm;
+      color: #94a3b8;
+      font-size: 11px;
+    }
+    .footer-note {
+      position: absolute;
+      left: 18mm;
+      bottom: 10mm;
+      color: #94a3b8;
+      font-size: 11px;
+    }
+    @media print {
+      body { background: white; }
+      .toolbar { display: none; }
+      .report { width: auto; margin: 0; }
+      .page {
+        min-height: auto;
+        height: 297mm;
+        margin: 0;
+        box-shadow: none;
+      }
+      @page { size: A4; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <strong>Relatório IAM TP - pronto para impressão/exportação PDF</strong>
+    <span>
+      <a href="/dashboard">Voltar ao dashboard</a>
+      <button onclick="window.print()">Imprimir / Guardar PDF</button>
+    </span>
+  </div>
+
+  <main class="report">
+    <section class="page cover">
+      <div>
+        <div class="eyebrow">Mestrado em Engenharia Informática - Gestão de Identidade</div>
+        <h1>Relatório Curto<br>Projeto IAM com Keycloak</h1>
+        <p class="lead">Solução funcional de Identity and Access Management para autenticação OIDC, autorização RBAC, MFA TOTP, ciclo de vida JML e auditoria operacional.</p>
+        <div class="meta">
+          <div><strong>Instituição</strong><br>ESTG-IPP</div>
+          <div><strong>Ano letivo</strong><br>2025/2026</div>
+          <div><strong>Stack</strong><br>Keycloak, FastAPI, PostgreSQL, Docker Compose</div>
+          <div><strong>Demo</strong><br>Dashboard em <code>http://localhost:8000/dashboard</code></div>
+        </div>
+      </div>
+      <div class="figure">
+        <img src="report-assets/arquitetura_iam.svg" alt="Arquitetura IAM do projeto">
+        <div class="caption">Figura 1 - Arquitetura executável do projeto: app, Keycloak e base de dados sob Docker Compose.</div>
+      </div>
+      <div>
+        <span class="badge ok">Entregável 5-8 páginas</span>
+        <span class="badge ok">Print-ready</span>
+        <span class="badge ok">Com evidências visuais</span>
+      </div>
+      <span class="footer-note">Relatório curto - IAM TP</span><span class="page-num">1/6</span>
+    </section>
+
+    <section class="page">
+      <h2>1. Objetivo e Enquadramento</h2>
+      <p>O objetivo do projeto é construir uma solução IAM funcional para um cenário realista, usando o Keycloak como componente central de identidade. A solução permite autenticar utilizadores, aplicar políticas de autorização, gerir o ciclo de vida de identidades, exigir autenticação multifator e consultar evidências de auditoria.</p>
+      <p>O caso de uso escolhido é uma aplicação interna com três perfis de acesso: <strong>admin</strong>, <strong>colaborador</strong> e <strong>visitante</strong>. A aplicação protegida é uma API FastAPI acompanhada por um dashboard de demonstração.</p>
+
+      <h3>Componentes principais</h3>
+      <ul>
+        <li><strong>Keycloak 26</strong>: Identity Provider, realm dedicado, roles, groups, users, MFA e eventos.</li>
+        <li><strong>FastAPI</strong>: aplicação integrada com OIDC, validação de JWT RS256 e endpoints protegidos.</li>
+        <li><strong>PostgreSQL</strong>: persistência interna do Keycloak.</li>
+        <li><strong>Dashboard</strong>: painel para demonstrar login, claims, RBAC, JML, MFA e auditoria.</li>
+      </ul>
+
+      <div class="status-grid">
+        <div class="status"><b>OIDC</b>Cliente `fastapi-client` com Authorization Code + PKCE e direct grant para testes.</div>
+        <div class="status"><b>RBAC</b>Roles de realm e groups sincronizados para recursos protegidos.</div>
+        <div class="status"><b>JML</b>Joiner, Mover e Leaver via Admin REST API.</div>
+      </div>
+
+      <h3>Reprodutibilidade</h3>
+      <p>O ficheiro <code>docker-compose.yml</code> inicia Keycloak, PostgreSQL e a aplicação. O ficheiro <code>realm-export.json</code> permite importar a configuração do realm e reproduzir utilizadores, roles, groups, cliente OIDC, MFA e eventos.</p>
+      <div class="callout"><strong>Comando de arranque:</strong> <code>docker compose up -d --build</code>. Após o arranque, o dashboard fica disponível em <code>http://localhost:8000/dashboard</code> e o Keycloak em <code>http://localhost:8081</code>.</div>
+      <span class="footer-note">Relatório curto - IAM TP</span><span class="page-num">2/6</span>
+    </section>
+
+    <section class="page">
+      <h2>2. Autenticação OIDC e Gestão de Sessão</h2>
+      <p>A autenticação é delegada no Keycloak. A aplicação FastAPI recebe tokens OIDC/JWT e valida a assinatura RS256 através da JWKS publicada pelo realm. Também valida audience e issuer, evitando aceitar tokens emitidos para clientes ou realms errados.</p>
+
+      <h3>Claims usadas pela aplicação</h3>
+      <table>
+        <thead><tr><th>Claim</th><th>Finalidade</th><th>Uso no projeto</th></tr></thead>
+        <tbody>
+          <tr><td><code>sub</code></td><td>Identificador único do utilizador</td><td>Exibido em `/me` e no dashboard</td></tr>
+          <tr><td><code>email</code></td><td>Contacto do utilizador</td><td>Exibido no perfil da sessão</td></tr>
+          <tr><td><code>preferred_username</code></td><td>Nome de login</td><td>Identificação visual do utilizador</td></tr>
+          <tr><td><code>realm_access.roles</code></td><td>Papéis atribuídos</td><td>Base da autorização RBAC</td></tr>
+          <tr><td><code>amr</code> / <code>acr</code></td><td>Prova de MFA</td><td>Usado por `/admin/mfa-area`</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Fluxo implementado</h3>
+      <p>O dashboard permite login através de `/auth/token`, que chama o token endpoint do Keycloak. Para a demo, este fluxo simplifica a obtenção de tokens; no realm, o cliente também está configurado com Authorization Code + PKCE para o fluxo browser recomendado.</p>
+      <p>Após login, o dashboard mostra o payload do JWT, as roles e o tempo restante até expiração. Isto serve como evidência direta de autenticação e leitura de claims.</p>
+
+      <div class="figure">
+        <img src="report-assets/evidencias_dashboard.svg" alt="Evidências visuais do dashboard">
+        <div class="caption">Figura 2 - Evidências disponíveis no dashboard: sessão, RBAC, auditoria e MFA.</div>
+      </div>
+      <span class="footer-note">Relatório curto - IAM TP</span><span class="page-num">3/6</span>
+    </section>
+
+    <section class="page">
+      <h2>3. Autorização RBAC</h2>
+      <p>A autorização é implementada com papéis explícitos no Keycloak e dependências FastAPI. A função <code>require_role()</code> verifica as roles presentes em <code>realm_access.roles</code> e rejeita pedidos sem privilégio suficiente com HTTP 403.</p>
+
+      <h3>Roles e política de acesso</h3>
+      <ul>
+        <li><strong>visitante</strong>: acesso mínimo a recursos públicos e ao próprio perfil autenticado.</li>
+        <li><strong>colaborador</strong>: acesso a recursos internos de colaborador.</li>
+        <li><strong>admin</strong>: acesso total, incluindo JML, auditoria e zonas administrativas.</li>
+      </ul>
+
+      <div class="figure">
+        <img src="report-assets/matriz_rbac.svg" alt="Matriz de autorização RBAC">
+        <div class="caption">Figura 3 - Matriz RBAC usada na demonstração para provar respostas 200, 401 e 403.</div>
+      </div>
+
+      <h3>Evidência técnica</h3>
+      <table>
+        <thead><tr><th>Endpoint</th><th>Proteção</th><th>Resultado esperado</th></tr></thead>
+        <tbody>
+          <tr><td><code>/public</code></td><td>Sem autenticação</td><td>Todos conseguem aceder</td></tr>
+          <tr><td><code>/me</code></td><td>JWT válido</td><td>Devolve claims básicas</td></tr>
+          <tr><td><code>/colaborador/data</code></td><td>colaborador ou admin</td><td>Visitante recebe 403</td></tr>
+          <tr><td><code>/admin/users</code></td><td>admin</td><td>Colaborador e visitante recebem 403</td></tr>
+          <tr><td><code>/admin/mfa-area</code></td><td>admin + MFA</td><td>Admin sem MFA recebe 403</td></tr>
+        </tbody>
+      </table>
+      <span class="footer-note">Relatório curto - IAM TP</span><span class="page-num">4/6</span>
+    </section>
+
+    <section class="page">
+      <h2>4. MFA e Ciclo de Vida JML</h2>
+      <h3>MFA TOTP</h3>
+      <p>O utilizador <code>admin.user</code> tem a required action <code>CONFIGURE_TOTP</code>. No primeiro login browser, o Keycloak obriga à configuração de uma aplicação autenticadora TOTP. O endpoint <code>/admin/mfa-area</code> exige role admin e prova de MFA através de <code>amr</code> ou <code>acr</code>.</p>
+      <div class="callout">Demonstração: token admin sem MFA deve devolver 403 em <code>/admin/mfa-area</code>; token admin com OTP comprovado deve devolver 200.</div>
+
+      <h3>JML integrado com Keycloak</h3>
+      <p>Os fluxos Joiner, Mover e Leaver foram implementados sobre o Keycloak Admin REST API. Isto garante que a identidade é gerida no diretório central e não em ficheiros locais.</p>
+      <div class="figure">
+        <img src="report-assets/fluxo_jml.svg" alt="Fluxos Joiner, Mover e Leaver">
+        <div class="caption">Figura 4 - Fluxos JML: criação, alteração de role/grupo, desativação e revogação de sessões.</div>
+      </div>
+
+      <table>
+        <thead><tr><th>Fluxo</th><th>Ação</th><th>Efeito de segurança</th></tr></thead>
+        <tbody>
+          <tr><td>Joiner</td><td>Cria utilizador, atribui role e grupo inicial</td><td>Acesso inicial controlado</td></tr>
+          <tr><td>Mover</td><td>Remove role/grupo antigo, atribui novo e revoga sessões</td><td>Impacto imediato no acesso após novo token</td></tr>
+          <tr><td>Leaver</td><td>Desativa utilizador, remove roles e revoga sessões</td><td>Bloqueia login e corta sessões ativas</td></tr>
+        </tbody>
+      </table>
+      <span class="footer-note">Relatório curto - IAM TP</span><span class="page-num">5/6</span>
+    </section>
+
+    <section class="page">
+      <h2>5. Auditoria, Segurança e Conclusão</h2>
+      <h3>Auditoria</h3>
+      <p>O Keycloak tem eventos de utilizador e eventos administrativos ativos. A aplicação expõe endpoints de auditoria protegidos por admin e o dashboard apresenta eventos e resumo por tipo.</p>
+      <ul>
+        <li>Eventos de login, falhas de login, logout e refresh.</li>
+        <li>Eventos de MFA, incluindo configuração e falhas TOTP.</li>
+        <li>Eventos administrativos associados a alterações de utilizadores, grupos e roles.</li>
+      </ul>
+
+      <h3>Segurança operacional</h3>
+      <table>
+        <thead><tr><th>Risco</th><th>Mitigação aplicada</th></tr></thead>
+        <tbody>
+          <tr><td>Token inválido ou forjado</td><td>Validação RS256 via JWKS, audience e issuer</td></tr>
+          <tr><td>Acesso indevido a recursos</td><td>RBAC no backend com `require_role()`</td></tr>
+          <tr><td>Admin sem segunda camada</td><td>Required action TOTP e endpoint com `require_mfa()`</td></tr>
+          <tr><td>Sessões antigas após mudança de role</td><td>Revogação de sessões no Mover e Leaver</td></tr>
+          <tr><td>Falta de evidência</td><td>Eventos Keycloak e dashboard de auditoria</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Validação final</h3>
+      <p>A solução cumpre os requisitos técnicos obrigatórios do enunciado: Keycloak central, OIDC, RBAC, MFA TOTP, JML via Admin API, auditoria, Docker Compose e import/export do realm.</p>
+      <p>Os testes automatizados validam a lógica de JWT, roles e MFA. A demo final no dashboard permite demonstrar os requisitos de forma sequencial em cerca de 10 minutos.</p>
+
+      <div class="callout"><strong>Conclusão:</strong> o projeto está preparado para demonstração ao cliente/docente, com evidência visual, técnica e operacional disponível no dashboard e neste relatório.</div>
+      <span class="footer-note">Relatório curto - IAM TP</span><span class="page-num">6/6</span>
+    </section>
+  </main>
+</body>
+</html>

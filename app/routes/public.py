@@ -58,9 +58,15 @@ async def login(body: LoginRequest):
             },
         )
     if resp.status_code != 200:
+        error = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+        error_description = error.get("error_description") or error.get("error")
+        if error_description and "resolve_required_actions" in error_description:
+            detail = "Login bloqueado por ação obrigatória no Keycloak. Recrie o utilizador no JML ou limpe required actions."
+        else:
+            detail = "Credenciais inválidas ou utilizador não encontrado"
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciais inválidas ou utilizador não encontrado",
+            detail=detail,
             headers={"WWW-Authenticate": "Bearer"},
         )
     data = resp.json()

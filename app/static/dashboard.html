@@ -6,6 +6,7 @@
 <title>IAM TP — Gestão de Identidade</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="/static/dashboard.css">
+<link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
 
@@ -32,7 +33,7 @@
 <!-- ===== TABS ===== -->
 <nav class="tabs-bar">
   <div class="tabs-inner">
-    <button class="tab-btn" id="tab-relatorio" onclick="showTab('relatorio')">📄 Relatório</button>
+    <button class="tab-btn" id="tab-relatorio" onclick="showTab('relatorio')">🏠 Home</button>
     <button class="tab-btn active" id="tab-auth"      onclick="showTab('auth')">🔐 Autenticação</button>
     <button class="tab-btn" id="tab-rbac"      onclick="showTab('rbac')">🛡️ Autorização</button>
     <button class="tab-btn" id="tab-jml"       onclick="showTab('jml')">👥 JML</button>
@@ -59,6 +60,19 @@
       <span class="stack-pill sp-fa">⚡ FastAPI</span>
       <span class="stack-pill sp-py">🐍 Python 3.12</span>
       <span class="stack-pill sp-dk">🐳 Docker Compose</span>
+    </div>
+  </div>
+
+  <!-- Entregavel formal -->
+  <div class="report-deliverable">
+    <div>
+      <div class="report-deliverable-kicker">Entregavel formal</div>
+      <h2>Relatorio curto 5-8 paginas</h2>
+      <p>Documento print-ready com arquitetura, decisoes tecnicas, fluxos de autenticacao/autorizacao, JML, MFA, auditoria, riscos e evidencias visuais do projeto.</p>
+    </div>
+    <div class="report-deliverable-actions">
+      <a class="btn-primary" href="relatorio_iam_tp.html" target="_blank" rel="noopener">Abrir relatorio</a>
+      <a class="btn-ghost" href="relatorio_iam_tp.html" target="_blank" rel="noopener">Exportar PDF pelo browser</a>
     </div>
   </div>
 
@@ -619,7 +633,7 @@
       <button class="btn-primary" onclick="testAll()">Testar Todos os Endpoints</button>
     </div>
     <div id="no-token-rbac" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
-      ⚠️ Sem token ativo. Faça login na tab Autenticação primeiro.
+      ⚠️ Sem token ativo. Faça login na tab Autenticação primeiro. Com token admin, os endpoints admin deixam de aparecer como "401 Sem token".
     </div>
     <table>
       <thead>
@@ -650,10 +664,7 @@
         <tr><td><code style="color:#94a3b8;font-size:12px;">GET /colaborador/perfil</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
         <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/users</code></td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
         <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/audit</code></td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
-        <tr><td>
-          <code style="color:#94a3b8;font-size:12px;">GET /admin/mfa-area</code>
-          <span style="margin-left:6px;font-size:10px;background:#4c1d95;color:#c4b5fd;padding:1px 6px;border-radius:10px;">+ MFA</span>
-        </td><td style="text-align:center">✅ <span style="font-size:10px;color:#64748b;">(MFA obrig.)</span></td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/mfa-area + MFA</code></td><td style="text-align:center">✅ <span style="font-size:10px;color:#64748b;">(MFA obrig.)</span></td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
       </tbody>
     </table>
     <div style="margin-top:12px;padding:10px 14px;background:#1c0a2e;border:1px solid #7c3aed;border-radius:8px;font-size:12px;color:#c4b5fd;">
@@ -947,7 +958,7 @@
 </div><!-- /main -->
 
 <script>
-const API = '';
+const API = window.location.protocol === 'file:' ? 'http://localhost:8000' : '';
 let currentToken = null;
 let currentUser = null;
 let tokenExpiry = null;
@@ -973,8 +984,75 @@ function showTab(name) {
     document.getElementById('tab-'+t).classList.toggle('active', t === name);
   });
   if (name === 'rbac')  renderEndpointsTable();
-  if (name === 'jml')   { checkAdminGuard('no-admin-jml'); loadUsers(); }
-  if (name === 'audit') { checkAdminGuard('no-admin-audit'); loadAudit(); }
+  if (name === 'jml' && checkAdminGuard('no-admin-jml')) loadUsers();
+  if (name === 'audit' && checkAdminGuard('no-admin-audit')) loadAudit();
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+async function readJsonResponse(response) {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { detail: text };
+  }
+}
+
+function getErrorMessage(data, fallback = 'Erro') {
+  const detail = data?.detail;
+  if (Array.isArray(detail)) return detail.map(d => d.msg || JSON.stringify(d)).join('; ');
+  if (detail && typeof detail === 'object') return JSON.stringify(detail);
+  return detail || fallback;
+}
+
+function roleBadgeClass(role) {
+  return ['admin','colaborador','visitante'].includes(role) ? role : 'none';
+}
+
+function persistSession(token, payload) {
+  try {
+    sessionStorage.setItem('iamDashboardToken', token);
+    sessionStorage.setItem('iamDashboardUser', JSON.stringify(payload));
+  } catch (_) {}
+}
+
+function clearPersistedSession() {
+  try {
+    sessionStorage.removeItem('iamDashboardToken');
+    sessionStorage.removeItem('iamDashboardUser');
+  } catch (_) {}
+}
+
+function restoreSession() {
+  try {
+    const token = sessionStorage.getItem('iamDashboardToken');
+    if (!token) return false;
+    const payload = parseJwt(token);
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp && payload.exp <= now) {
+      clearPersistedSession();
+      return false;
+    }
+    currentToken = token;
+    currentUser = payload;
+    tokenExpiry = payload.exp;
+    updateSessionUI(payload);
+    document.getElementById('btn-logout').style.display = '';
+    startExpiryCountdown();
+    return true;
+  } catch (_) {
+    clearPersistedSession();
+    return false;
+  }
 }
 
 function applyPreset() {
@@ -1002,19 +1080,20 @@ async function doLogin() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password, ...(totp && { totp }) })
     });
-    const data = await r.json();
-    if (!r.ok) { showResult(resultEl, '❌ ' + (data.detail || 'Credenciais inválidas'), 'err'); return; }
+    const data = await readJsonResponse(r);
+    if (!r.ok) { showResult(resultEl, '❌ ' + escapeHtml(getErrorMessage(data, 'Credenciais inválidas')), 'err'); return; }
 
     currentToken = data.access_token;
     const payload = parseJwt(currentToken);
     currentUser = payload;
     tokenExpiry = payload.exp;
     updateSessionUI(payload);
+    persistSession(currentToken, payload);
     showResult(resultEl, '✅ Login efetuado com sucesso!', 'ok');
     document.getElementById('btn-logout').style.display = '';
     startExpiryCountdown();
   } catch (e) {
-    showResult(resultEl, '❌ Erro de rede: ' + e.message, 'err');
+    showResult(resultEl, '❌ Erro de rede: ' + escapeHtml(e.message), 'err');
   } finally {
     btn.innerHTML = 'Entrar via Keycloak';
     btn.disabled = false;
@@ -1023,6 +1102,7 @@ async function doLogin() {
 
 function doLogout() {
   currentToken = null; currentUser = null; tokenExpiry = null;
+  clearPersistedSession();
   if (expiryInterval) clearInterval(expiryInterval);
   document.getElementById('session-info').style.display = 'none';
   document.getElementById('session-empty').style.display = '';
@@ -1033,14 +1113,19 @@ function doLogout() {
 }
 
 function parseJwt(token) {
-  const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-  return JSON.parse(atob(base64));
+  const parts = token.split('.');
+  if (parts.length < 2) throw new Error('Token JWT incompleto');
+  const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+  const padded = base64.padEnd(base64.length + ((4 - base64.length % 4) % 4), '=');
+  const bytes = Uint8Array.from(atob(padded), c => c.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
 }
 
 function updateSessionUI(p) {
   const roles = p.realm_access?.roles || [];
   const username = p.preferred_username || p.sub;
   const mainRole = roles.find(r => ['admin','colaborador','visitante'].includes(r)) || roles[0] || '—';
+  const mainRoleClass = roleBadgeClass(mainRole);
 
   document.getElementById('session-empty').style.display = 'none';
   document.getElementById('session-info').style.display = '';
@@ -1052,20 +1137,20 @@ function updateSessionUI(p) {
 
   const badge = document.getElementById('sess-role-badge');
   badge.textContent = mainRole;
-  badge.className = 'badge-' + mainRole;
+  badge.className = 'badge-' + mainRoleClass;
   badge.style.cssText = 'margin-left:auto;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;';
 
   const rolesEl = document.getElementById('sess-roles');
   rolesEl.innerHTML = roles
     .filter(r => !['default-roles-iam-tp','offline_access','uma_authorization'].includes(r))
-    .map(r => `<span class="badge-${['admin','colaborador','visitante'].includes(r) ? r : 'none'}" style="padding:2px 10px;border-radius:20px;font-size:12px;">${r}</span>`)
+    .map(r => `<span class="badge-${roleBadgeClass(r)}" style="padding:2px 10px;border-radius:20px;font-size:12px;">${escapeHtml(r)}</span>`)
     .join('');
 
   document.getElementById('header-user').innerHTML = `
     <span style="display:flex;align-items:center;gap:8px;">
-      <span style="width:28px;height:28px;background:#1e40af;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">${username[0].toUpperCase()}</span>
-      <span style="font-size:13px;font-weight:600;">${username}</span>
-      <span class="badge-${mainRole}" style="padding:2px 8px;border-radius:20px;font-size:11px;">${mainRole}</span>
+      <span style="width:28px;height:28px;background:#1e40af;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;">${escapeHtml(username[0].toUpperCase())}</span>
+      <span style="font-size:13px;font-weight:600;">${escapeHtml(username)}</span>
+      <span class="badge-${mainRoleClass}" style="padding:2px 8px;border-radius:20px;font-size:11px;">${escapeHtml(mainRole)}</span>
     </span>`;
 }
 
@@ -1105,7 +1190,8 @@ async function testEndpoint(path, method) {
   try {
     const r = await fetch(API + path, { method, headers });
     if (r.ok)            el.innerHTML = `<span style="color:#4ade80;font-size:13px;">✅ ${r.status}</span>`;
-    else if (r.status===401) el.innerHTML = `<span style="color:#facc15;font-size:13px;">⚠️ 401 Sem token</span>`;
+    else if (r.status===401) el.innerHTML = `<span style="color:#facc15;font-size:13px;">⚠️ 401 ${currentToken ? 'Token inválido/expirado' : 'Sem token'}</span>`;
+    else if (r.status===403 && path === '/admin/mfa-area') el.innerHTML = `<span style="color:#facc15;font-size:13px;">🔒 403 MFA obrigatório</span>`;
     else if (r.status===403) el.innerHTML = `<span style="color:#f87171;font-size:13px;">❌ 403 Acesso negado</span>`;
     else                 el.innerHTML = `<span style="color:#f87171;font-size:13px;">❌ ${r.status}</span>`;
   } catch (e) {
@@ -1120,26 +1206,29 @@ async function testAll() {
 function checkAdminGuard(elId) {
   const isAdmin = currentUser?.realm_access?.roles?.includes('admin');
   document.getElementById(elId).style.display = isAdmin ? 'none' : '';
+  return isAdmin;
 }
 
 async function loadUsers() {
   const el = document.getElementById('users-list');
+  if (!checkAdminGuard('no-admin-jml')) { el.innerHTML = '<p style="color:#475569;font-size:14px;">Acesso admin necessário.</p>'; return; }
   if (!currentToken) { el.innerHTML = '<p style="color:#475569;font-size:14px;">Sem token ativo.</p>'; return; }
   el.innerHTML = '<span class="spinner"></span> A carregar...';
   try {
     const r = await fetch(API + '/admin/users', { headers: { Authorization: 'Bearer ' + currentToken } });
-    const data = await r.json();
-    if (!r.ok) { el.innerHTML = `<p style="color:#f87171;font-size:13px;">${data.detail || 'Erro'}</p>`; return; }
+    const data = await readJsonResponse(r);
+    if (!r.ok) { el.innerHTML = `<p style="color:#f87171;font-size:13px;">${escapeHtml(getErrorMessage(data))}</p>`; return; }
+    const users = Array.isArray(data.users) ? data.users : [];
     el.innerHTML = `<table>
       <thead><tr><th>Username</th><th>Email</th><th>Estado</th><th>Criado</th></tr></thead>
-      <tbody>${data.users.map(u => `<tr>
-        <td style="font-weight:600;color:#f1f5f9;">${u.username}</td>
-        <td style="color:#64748b;">${u.email || '—'}</td>
+      <tbody>${users.map(u => `<tr>
+        <td style="font-weight:600;color:#f1f5f9;">${escapeHtml(u.username)}</td>
+        <td style="color:#64748b;">${escapeHtml(u.email || '—')}</td>
         <td><span style="padding:2px 8px;border-radius:20px;font-size:12px;${u.enabled ? 'background:#052e16;color:#4ade80;' : 'background:#2d0000;color:#f87171;'}">${u.enabled ? 'Ativo' : 'Desativado'}</span></td>
         <td style="color:#475569;font-size:12px;">${u.createdTimestamp ? new Date(u.createdTimestamp).toLocaleDateString('pt-PT') : '—'}</td>
       </tr>`).join('')}</tbody>
     </table>`;
-  } catch (e) { el.innerHTML = `<p style="color:#f87171;">Erro: ${e.message}</p>`; }
+  } catch (e) { el.innerHTML = `<p style="color:#f87171;">Erro: ${escapeHtml(e.message)}</p>`; }
 }
 
 async function doJoiner() {
@@ -1154,10 +1243,10 @@ async function doJoiner() {
   showResult(el, '<span class="spinner"></span> A criar utilizador...', '');
   try {
     const r = await fetch(API + '/admin/jml/joiner', { method: 'POST', headers: { Authorization: 'Bearer ' + currentToken, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const data = await r.json();
-    if (r.ok) { showResult(el, '✅ ' + data.message, 'ok'); loadUsers(); }
-    else showResult(el, '❌ ' + (data.detail || JSON.stringify(data)), 'err');
-  } catch (e) { showResult(el, '❌ ' + e.message, 'err'); }
+    const data = await readJsonResponse(r);
+    if (r.ok) { showResult(el, '✅ ' + escapeHtml(data.message), 'ok'); loadUsers(); }
+    else showResult(el, '❌ ' + escapeHtml(getErrorMessage(data, JSON.stringify(data))), 'err');
+  } catch (e) { showResult(el, '❌ ' + escapeHtml(e.message), 'err'); }
 }
 
 async function doMover() {
@@ -1167,10 +1256,10 @@ async function doMover() {
   showResult(el, '<span class="spinner"></span> A mover utilizador...', '');
   try {
     const r = await fetch(API + '/admin/jml/mover', { method: 'POST', headers: { Authorization: 'Bearer ' + currentToken, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    const data = await r.json();
-    if (r.ok) { showResult(el, '✅ ' + data.message, 'ok'); loadUsers(); }
-    else showResult(el, '❌ ' + (data.detail || JSON.stringify(data)), 'err');
-  } catch (e) { showResult(el, '❌ ' + e.message, 'err'); }
+    const data = await readJsonResponse(r);
+    if (r.ok) { showResult(el, '✅ ' + escapeHtml(data.message), 'ok'); loadUsers(); }
+    else showResult(el, '❌ ' + escapeHtml(getErrorMessage(data, JSON.stringify(data))), 'err');
+  } catch (e) { showResult(el, '❌ ' + escapeHtml(e.message), 'err'); }
 }
 
 async function doLeaver() {
@@ -1180,10 +1269,10 @@ async function doLeaver() {
   showResult(el, '<span class="spinner"></span> A desativar utilizador...', '');
   try {
     const r = await fetch(API + '/admin/jml/leaver', { method: 'POST', headers: { Authorization: 'Bearer ' + currentToken, 'Content-Type': 'application/json' }, body: JSON.stringify({ username }) });
-    const data = await r.json();
-    if (r.ok) { showResult(el, '✅ ' + data.message, 'ok'); loadUsers(); }
-    else showResult(el, '❌ ' + (data.detail || JSON.stringify(data)), 'err');
-  } catch (e) { showResult(el, '❌ ' + e.message, 'err'); }
+    const data = await readJsonResponse(r);
+    if (r.ok) { showResult(el, '✅ ' + escapeHtml(data.message), 'ok'); loadUsers(); }
+    else showResult(el, '❌ ' + escapeHtml(getErrorMessage(data, JSON.stringify(data))), 'err');
+  } catch (e) { showResult(el, '❌ ' + escapeHtml(e.message), 'err'); }
 }
 
 async function loadAudit() {
@@ -1191,6 +1280,12 @@ async function loadAudit() {
   const tableEl = document.getElementById('audit-table-wrap');
   const chartEl = document.getElementById('audit-chart');
   const adminEl = document.getElementById('admin-events-wrap');
+  if (!checkAdminGuard('no-admin-audit')) {
+    tableEl.innerHTML = '<p style="color:#475569;font-size:14px;">Acesso admin necessário.</p>';
+    chartEl.innerHTML = '<p style="color:#475569;font-size:13px;">Sem dados</p>';
+    adminEl.innerHTML = '<p style="color:#475569;font-size:13px;">Sem dados</p>';
+    return;
+  }
   if (!currentToken) { tableEl.innerHTML = '<p style="color:#475569;font-size:14px;">Sem token ativo.</p>'; return; }
 
   tableEl.innerHTML = '<span class="spinner"></span>';
@@ -1204,16 +1299,23 @@ async function loadAudit() {
       fetch(API + '/admin/audit?' + params, { headers: { Authorization: 'Bearer ' + currentToken } }),
       fetch(API + '/admin/audit/summary', { headers: { Authorization: 'Bearer ' + currentToken } }),
     ]);
-    const audit = await auditR.json();
-    const summary = await summaryR.json();
+    const audit = await readJsonResponse(auditR);
+    const summary = await readJsonResponse(summaryR);
+    if (!auditR.ok || !summaryR.ok) {
+      const msg = getErrorMessage(!auditR.ok ? audit : summary);
+      tableEl.innerHTML = `<p style="color:#f87171;font-size:13px;">${escapeHtml(msg)}</p>`;
+      chartEl.innerHTML = '<p style="color:#475569;font-size:13px;">Sem dados</p>';
+      adminEl.innerHTML = '<p style="color:#475569;font-size:13px;">Sem dados</p>';
+      return;
+    }
 
     const evs = audit.user_events || [];
     tableEl.innerHTML = evs.length === 0 ? '<p style="color:#475569;font-size:14px;padding:16px;">Sem eventos encontrados.</p>' :
       `<table><thead><tr><th>Tipo</th><th>Utilizador</th><th>IP</th><th>Data/Hora</th></tr></thead><tbody>${
         evs.map(e => `<tr>
-          <td><span style="font-size:12px;padding:2px 8px;border-radius:4px;${e.type?.includes('ERROR') ? 'background:#2d0000;color:#f87171;' : 'background:#052e16;color:#4ade80;'}">${e.type || '—'}</span></td>
-          <td style="font-size:13px;color:#94a3b8;">${e.details?.username || e.userId?.slice(0, 8) + '...' || '—'}</td>
-          <td style="font-size:12px;color:#475569;">${e.ipAddress || '—'}</td>
+          <td><span style="font-size:12px;padding:2px 8px;border-radius:4px;${e.type?.includes('ERROR') ? 'background:#2d0000;color:#f87171;' : 'background:#052e16;color:#4ade80;'}">${escapeHtml(e.type || '—')}</span></td>
+          <td style="font-size:13px;color:#94a3b8;">${escapeHtml(e.details?.username || (e.userId ? e.userId.slice(0, 8) + '...' : '—'))}</td>
+          <td style="font-size:12px;color:#475569;">${escapeHtml(e.ipAddress || '—')}</td>
           <td style="font-size:12px;color:#475569;">${e.time ? new Date(e.time).toLocaleString('pt-PT') : '—'}</td>
         </tr>`).join('')
       }</tbody></table>`;
@@ -1221,9 +1323,9 @@ async function loadAudit() {
     const byType = summary.by_type || {};
     const entries = Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 10);
     const max = Math.max(...entries.map(e => e[1]), 1);
-    chartEl.innerHTML = `<div style="font-size:12px;color:#475569;margin-bottom:8px;">Total: ${summary.total} eventos</div>` +
+    chartEl.innerHTML = `<div style="font-size:12px;color:#475569;margin-bottom:8px;">Total: ${escapeHtml(summary.total ?? 0)} eventos</div>` +
       (entries.map(([t, c]) => `<div style="margin-bottom:6px;">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:2px;"><span>${t}</span><span style="font-weight:600;">${c}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:2px;"><span>${escapeHtml(t)}</span><span style="font-weight:600;">${escapeHtml(c)}</span></div>
         <div style="background:#1e293b;border-radius:4px;height:16px;"><div class="bar" style="width:${Math.max(8, (c / max) * 100)}%;height:16px;"></div></div>
       </div>`).join('') || '<p style="color:#475569;font-size:13px;">Sem dados</p>');
 
@@ -1231,14 +1333,14 @@ async function loadAudit() {
     adminEl.innerHTML = admEvs.length === 0 ? '<p style="color:#475569;font-size:14px;padding:8px;">Sem eventos admin encontrados.</p>' :
       `<table><thead><tr><th>Operação</th><th>Recurso</th><th>Representação</th><th>Data/Hora</th></tr></thead><tbody>${
         admEvs.map(e => `<tr>
-          <td><span style="font-size:12px;padding:2px 8px;border-radius:4px;background:#1c1400;color:#facc15;">${e.operationType || '—'}</span></td>
-          <td style="font-size:12px;color:#64748b;">${e.resourceType || '—'}</td>
-          <td style="font-size:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${JSON.stringify(e.representation || {})}</td>
+          <td><span style="font-size:12px;padding:2px 8px;border-radius:4px;background:#1c1400;color:#facc15;">${escapeHtml(e.operationType || '—')}</span></td>
+          <td style="font-size:12px;color:#64748b;">${escapeHtml(e.resourceType || '—')}</td>
+          <td style="font-size:12px;color:#475569;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(JSON.stringify(e.representation || {}))}</td>
           <td style="font-size:12px;color:#475569;">${e.time ? new Date(e.time).toLocaleString('pt-PT') : '—'}</td>
         </tr>`).join('')
       }</tbody></table>`;
 
-  } catch (e) { tableEl.innerHTML = `<p style="color:#f87171;">Erro: ${e.message}</p>`; }
+  } catch (e) { tableEl.innerHTML = `<p style="color:#f87171;">Erro: ${escapeHtml(e.message)}</p>`; }
 }
 
 function showResult(el, msg, type) {
@@ -1258,20 +1360,22 @@ function usePastedToken() {
     currentUser = payload;
     tokenExpiry = payload.exp;
     updateSessionUI(payload);
+    persistSession(currentToken, payload);
     startExpiryCountdown();
     const amr = payload.amr || [];
     const hasMfa = amr.some(f => ['otp','mfa','2fa','google_authenticator'].includes(f));
     const mfaNote = hasMfa
-      ? `<span style="color:#4ade80;">✅ MFA confirmado — amr: ${JSON.stringify(amr)}</span>`
-      : `<span style="color:#facc15;">⚠️ Token sem MFA (amr: ${JSON.stringify(amr)}) — /admin/mfa-area retornará 403</span>`;
-    showResult(el, `✅ Token carregado como <strong>${payload.preferred_username}</strong>. ${mfaNote}`, 'ok');
+      ? `<span style="color:#4ade80;">✅ MFA confirmado — amr: ${escapeHtml(JSON.stringify(amr))}</span>`
+      : `<span style="color:#facc15;">⚠️ Token sem MFA (amr: ${escapeHtml(JSON.stringify(amr))}) — /admin/mfa-area retornará 403</span>`;
+    showResult(el, `✅ Token carregado como <strong>${escapeHtml(payload.preferred_username || payload.sub || 'utilizador')}</strong>. ${mfaNote}`, 'ok');
     document.getElementById('btn-logout').style.display = '';
   } catch (e) {
-    showResult(el, '❌ JWT inválido ou mal formado: ' + e.message, 'err');
+    showResult(el, '❌ JWT inválido ou mal formado: ' + escapeHtml(e.message), 'err');
   }
 }
 
 // Inicializar com tab Autenticação ativa (sem recarregar dados pesados)
+restoreSession();
 renderEndpointsTable();
 </script>
 </body>

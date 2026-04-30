@@ -89,4 +89,4 @@ def test_get_current_user_decodes_rs256_token():
 
     assert user["preferred_username"] == "tester"
     assert user["aud"] == "fastapi-client"
-    assert user["iss"] == "http://localhost:8081/realms/iam-tp"
+    assert user["iss"] == auth.settings.issuer

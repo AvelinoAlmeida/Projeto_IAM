@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-labelledby="title desc">
+  <title id="title">Fluxos JML</title>
+  <desc id="desc">Fluxos Joiner, Mover e Leaver integrados com Keycloak Admin REST API.</desc>
+  <rect width="1000" height="560" fill="#0f172a"/>
+  <text x="50" y="58" fill="#f8fafc" font-family="Inter,Segoe UI,Arial" font-size="34" font-weight="900">Ciclo de Vida de Identidade (JML)</text>
+  <text x="50" y="88" fill="#94a3b8" font-family="Inter,Segoe UI,Arial" font-size="18">Operações realizadas sobre o Keycloak via Admin REST API, não em ficheiros locais.</text>
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto"><path d="M0,0 L12,4 L0,8 Z" fill="#f59e0b"/></marker>
+    <style>
+      text{font-family:Inter,Segoe UI,Arial,sans-serif}
+      .card{fill:#111827;stroke:#334155;stroke-width:2}
+      .h{fill:#f8fafc;font-size:25px;font-weight:900}
+      .p{fill:#cbd5e1;font-size:18px}
+      .s{fill:#94a3b8;font-size:16px}
+    </style>
+  </defs>
+  <rect class="card" x="60" y="150" width="250" height="250" rx="24"/>
+  <text class="h" x="185" y="205" text-anchor="middle">Joiner</text>
+  <text class="p" x="90" y="250">1. Criar utilizador</text>
+  <text class="p" x="90" y="285">2. Atribuir role</text>
+  <text class="p" x="90" y="320">3. Atribuir grupo</text>
+  <text class="s" x="90" y="365">Ex.: demo.user -> colaborador</text>
+  <rect x="90" y="420" width="190" height="45" rx="12" fill="#052e16" stroke="#22c55e"/>
+  <text x="185" y="449" fill="#86efac" font-size="18" font-weight="800" text-anchor="middle">acesso inicial</text>
+
+  <rect class="card" x="375" y="150" width="250" height="250" rx="24"/>
+  <text class="h" x="500" y="205" text-anchor="middle">Mover</text>
+  <text class="p" x="405" y="250">1. Remover role antiga</text>
+  <text class="p" x="405" y="285">2. Aplicar nova role</text>
+  <text class="p" x="405" y="320">3. Revogar sessões</text>
+  <text class="s" x="405" y="365">Impacto no acesso após novo token</text>
+  <rect x="405" y="420" width="190" height="45" rx="12" fill="#1e1b4b" stroke="#8b5cf6"/>
+  <text x="500" y="449" fill="#c4b5fd" font-size="18" font-weight="800" text-anchor="middle">mudança efetiva</text>
+
+  <rect class="card" x="690" y="150" width="250" height="250" rx="24"/>
+  <text class="h" x="815" y="205" text-anchor="middle">Leaver</text>
+  <text class="p" x="720" y="250">1. Desativar conta</text>
+  <text class="p" x="720" y="285">2. Remover roles</text>
+  <text class="p" x="720" y="320">3. Revogar sessões</text>
+  <text class="s" x="720" y="365">Login passa a falhar</text>
+  <rect x="720" y="420" width="190" height="45" rx="12" fill="#450a0a" stroke="#ef4444"/>
+  <text x="815" y="449" fill="#fca5a5" font-size="18" font-weight="800" text-anchor="middle">acesso cortado</text>
+
+  <path d="M310 275 H375" stroke="#f59e0b" stroke-width="5" marker-end="url(#arrow)"/>
+  <path d="M625 275 H690" stroke="#f59e0b" stroke-width="5" marker-end="url(#arrow)"/>
+  <text x="500" y="520" fill="#64748b" font-size="16" text-anchor="middle">Evidência: scripts em jml/ e endpoints /admin/jml/* no painel de administração.</text>
+</svg>

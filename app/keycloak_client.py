@@ -9,14 +9,12 @@ from config import settings
 async def get_admin_token() -> str:
     async with httpx.AsyncClient() as client:
         resp = await client.post(
-            settings.token_url,
+            settings.admin_token_url,
             data={
                 "grant_type": "password",
-                "client_id": settings.keycloak_client_id,
-                "client_secret": settings.keycloak_client_secret,
+                "client_id": settings.keycloak_admin_client_id,
                 "username": settings.keycloak_admin_user,
                 "password": settings.keycloak_admin_password,
-                "scope": "openid",
             },
         )
     if resp.status_code != 200:
