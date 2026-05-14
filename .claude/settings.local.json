@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM\" -Recurse -Force | Select-Object -Property FullName | ForEach-Object { $_.FullName.Replace\\('c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM', '.'\\) } | Sort-Object)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM\\\\Docs\" -Force)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM\\\\app\\\\static\\\\\" -File | Select-Object Name, FullName)",
+      "Bash(Get-ChildItem -Path 'c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM\\\\app\\\\static' -File)"
+    ]
+  }
+}

@@ -29,7 +29,7 @@ Services after startup:
 ### Run Tests
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -r tests/requirements.txt
 python -m pytest tests/
 # Single test
 python -m pytest tests/test_auth.py::test_require_role_allows_admin
@@ -37,7 +37,7 @@ python -m pytest tests/test_auth.py::test_require_role_allows_admin
 
 Tests in `tests/test_auth.py` cover JWT validation (using a generated RSA key pair), `require_role()`, and `require_mfa()`. No running services needed — JWKS fetching is mocked by patching `auth._get_jwks` with `unittest.mock.patch.object`.
 
-> **Note:** `requirements-dev.txt` only pins `pytest`. The tests also require `cryptography` and `python-jose[cryptography]` (used by `app/requirements.txt`). Install `app/requirements.txt` alongside `requirements-dev.txt` to run the full test suite.
+`tests/requirements.txt` includes `pytest` and pulls `app/requirements.txt` via `-r ../app/requirements.txt`, so a single install command is sufficient.
 
 ### JML Scripts (run locally with Python 3.12+)
 
@@ -117,12 +117,12 @@ This mapping is duplicated in three places — `ROLE_GROUP_MAP` in `app/routes/a
 
 ### Key Files
 
-- `app/main.py` — FastAPI app entry point; registers all routers and configures CORS middleware (allowed origins: `http://localhost:8000` and `http://localhost:8080` — update here if testing from other origins)
+- `app/main.py` — FastAPI app entry point; registers all routers and configures CORS middleware (allowed origins: `http://localhost:8000`, `http://localhost:8080`, `http://localhost:8081`, and `null` — update here if testing from other origins)
 - `app/config.py` — Pydantic Settings; derives all Keycloak URLs (JWKS, issuer, admin API, token) from base URL + realm name
 - `app/auth.py` — JWT validation (`python-jose`), `require_role()`, and `require_mfa()` FastAPI dependencies
-- `app/keycloak_client.py` — Async Admin API helpers used by FastAPI routes (`get_admin_token`, `get_user_id`, `get_role`, `get_group_id`). Uses `http://keycloak:8080` (Docker-internal hostname); cannot be called from outside the Docker network.
+- `app/keycloak_client.py` — Async Admin API helpers used by FastAPI routes (`get_admin_token`, `get_user_id`, `get_role`, `get_group_id`). Obtains a service account token from the **master realm** using `KEYCLOAK_ADMIN`/`KEYCLOAK_ADMIN_PASSWORD`; then operates on the `iam-tp` realm. Uses `http://keycloak:8080` (Docker-internal hostname); cannot be called from outside the Docker network.
 - `jml/_keycloak_client.py` — Synchronous equivalents for the CLI scripts. Defaults to `http://localhost:8080` (overridable via `KEYCLOAK_URL`). Do not run inside the Docker network without setting `KEYCLOAK_URL=http://keycloak:8080`.
-- `app/static/dashboard.html` — Single-page interactive UI for demonstrating auth, RBAC, JML, and audit features
+- `app/static/` — Dashboard SPA (`dashboard.html` + `dashboard.css`) and SVG report diagrams (`report-assets/`) for demonstrating auth, RBAC, JML, and audit features
 - `realm-export.json` — Versioned Keycloak realm snapshot; auto-imported on container start
 - `app/Dockerfile` — Starts uvicorn with `--reload`; Python file changes inside the container are picked up without a restart (useful when bind-mounting `app/` during development)
 
@@ -143,3 +143,7 @@ OIDC_CLIENT_SECRET=<secret>   # Must match "secret" for fastapi-client in realm-
 ### Session Revocation
 
 `mover.py` and `leaver.py` (and their API equivalents) explicitly revoke all active Keycloak sessions after role/status changes, so permission changes take effect immediately without waiting for token expiry.
+
+### Async vs. Sync HTTP Clients
+
+FastAPI routes use `httpx.AsyncClient` (non-blocking, suited for an async event loop); JML CLI scripts use the synchronous `httpx` client (simpler for one-shot command-line tools). Both call the same Keycloak Admin REST API endpoints.

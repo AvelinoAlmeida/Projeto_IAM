@@ -38,7 +38,7 @@
     <button class="tab-btn" id="tab-rbac"      onclick="showTab('rbac')">🛡️ Autorização</button>
     <button class="tab-btn" id="tab-jml"       onclick="showTab('jml')">👥 JML</button>
     <button class="tab-btn" id="tab-audit"     onclick="showTab('audit')">📋 Auditoria</button>
-    <button class="tab-btn" id="tab-arch"      onclick="showTab('arch')">🏗️ Arquitetura</button>
+    <button class="tab-btn" id="tab-arch"      onclick="showTab('arch')">🎬 Demo</button>
   </div>
 </nav>
 
@@ -60,19 +60,6 @@
       <span class="stack-pill sp-fa">⚡ FastAPI</span>
       <span class="stack-pill sp-py">🐍 Python 3.12</span>
       <span class="stack-pill sp-dk">🐳 Docker Compose</span>
-    </div>
-  </div>
-
-  <!-- Entregavel formal -->
-  <div class="report-deliverable">
-    <div>
-      <div class="report-deliverable-kicker">Entregavel formal</div>
-      <h2>Relatorio curto 5-8 paginas</h2>
-      <p>Documento print-ready com arquitetura, decisoes tecnicas, fluxos de autenticacao/autorizacao, JML, MFA, auditoria, riscos e evidencias visuais do projeto.</p>
-    </div>
-    <div class="report-deliverable-actions">
-      <a class="btn-primary" href="relatorio_iam_tp.html" target="_blank" rel="noopener">Abrir relatorio</a>
-      <a class="btn-ghost" href="relatorio_iam_tp.html" target="_blank" rel="noopener">Exportar PDF pelo browser</a>
     </div>
   </div>
 
@@ -270,205 +257,76 @@
     </div>
   </div>
 
-  <!-- Guia de Demo ao Vivo -->
+  <!-- Arquitetura do Sistema -->
   <div style="margin-bottom:32px;">
-    <div class="rpt-title">Guia de Demo ao Vivo (10 min)</div>
-    <div class="demo-grid">
-      <div class="demo-step">
-        <div class="demo-num">1</div>
-        <div class="demo-content">
-          <h4>Mostrar arranque e serviços</h4>
-          <p>Demonstrar <code style="color:#6ee7b7;font-size:11px;">docker compose up</code> e confirmar que os 3 serviços estão ativos.</p>
-          <span class="demo-tag" onclick="showTab('auth')">→ Tab Autenticação</span>
-        </div>
-      </div>
-      <div class="demo-step">
-        <div class="demo-num">2</div>
-        <div class="demo-content">
-          <h4>Login como colaborador.user</h4>
-          <p>Selecionar preset → Entrar → mostrar JWT payload, roles e tempo de expiração.</p>
-          <span class="demo-tag" onclick="showTab('auth')">→ Tab Autenticação</span>
-        </div>
-      </div>
-      <div class="demo-step">
-        <div class="demo-num">3</div>
-        <div class="demo-content">
-          <h4>Testar RBAC com colaborador</h4>
-          <p>Clicar "Testar Todos" → mostrar ✅ em /colaborador/data e ❌ 403 em /admin/users.</p>
-          <span class="demo-tag" onclick="showTab('rbac')">→ Tab Autorização</span>
-        </div>
-      </div>
-      <div class="demo-step">
-        <div class="demo-num">4</div>
-        <div class="demo-content">
-          <h4>Login como admin.user</h4>
-          <p>Fazer login com admin.user (inserir código TOTP se MFA configurado). Mostrar role admin no header.</p>
-          <span class="demo-tag" onclick="showTab('auth')">→ Tab Autenticação</span>
-        </div>
-      </div>
-      <div class="demo-step">
-        <div class="demo-num">5</div>
-        <div class="demo-content">
-          <h4>Criar utilizador com Joiner</h4>
-          <p>Criar <code style="color:#fcd34d;font-size:11px;">demo.user</code> com role colaborador. Mostrar na lista de utilizadores.</p>
-          <span class="demo-tag" onclick="showTab('jml')">→ Tab JML</span>
-        </div>
-      </div>
-      <div class="demo-step">
-        <div class="demo-num">6</div>
-        <div class="demo-content">
-          <h4>Mover e Leaver — revogação instantânea</h4>
-          <p>Promover demo.user para admin → sessão revogada imediatamente. Depois: Leaver → login falha.</p>
-          <span class="demo-tag" onclick="showTab('jml')">→ Tab JML</span>
-        </div>
-      </div>
-      <div class="demo-step">
-        <div class="demo-num">7</div>
-        <div class="demo-content">
-          <h4>Mostrar eventos de auditoria</h4>
-          <p>Consultar eventos LOGIN, LOGIN_ERROR, LOGOUT. Filtrar por tipo. Ver resumo por evento.</p>
-          <span class="demo-tag" onclick="showTab('audit')">→ Tab Auditoria</span>
-        </div>
-      </div>
-      <div class="demo-step">
-        <div class="demo-num">8</div>
-        <div class="demo-content">
-          <h4>Demonstrar MFA em /admin/mfa-area</h4>
-          <p>Token sem MFA → 403. Colar token obtido com TOTP → 200. Mostrar diferença no claim amr.</p>
-          <span class="demo-tag" onclick="showTab('auth')">→ Token externo (MFA)</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Critérios de Avaliação -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;">
-    <div>
-      <div class="rpt-title">Critérios de Avaliação (0–20)</div>
-      <div class="criteria-list">
-        <div class="crit-item" style="border-color:#10b981;">
-          <div class="crit-info">
-            <h4>Arquitetura e coerência técnica</h4>
-            <p>Keycloak + FastAPI + PostgreSQL · Docker Compose · realm-export.json</p>
-          </div>
-          <div class="crit-pct" style="color:#10b981;">20%</div>
-        </div>
-        <div class="crit-item" style="border-color:#3b82f6;">
-          <div class="crit-info">
-            <h4>Autenticação / Federação</h4>
-            <p>OIDC via Keycloak · JWT RS256 · claims: sub, email, roles</p>
-          </div>
-          <div class="crit-pct" style="color:#3b82f6;">15%</div>
-        </div>
-        <div class="crit-item" style="border-color:#6366f1;">
-          <div class="crit-info">
-            <h4>Autorização (RBAC)</h4>
-            <p>3 roles · endpoints protegidos · 200/403 demonstrável</p>
-          </div>
-          <div class="crit-pct" style="color:#6366f1;">15%</div>
-        </div>
-        <div class="crit-item" style="border-color:#f59e0b;">
-          <div class="crit-info">
-            <h4>JML (Joiner · Mover · Leaver)</h4>
-            <p>Via Keycloak Admin REST API · revogação de sessões</p>
-          </div>
-          <div class="crit-pct" style="color:#f59e0b;">15%</div>
-        </div>
-        <div class="crit-item" style="border-color:#ec4899;">
-          <div class="crit-info">
-            <h4>MFA (TOTP via Keycloak)</h4>
-            <p>admin.user → CONFIGURE_TOTP required · verificação amr/acr</p>
-          </div>
-          <div class="crit-pct" style="color:#ec4899;">15%</div>
-        </div>
-        <div class="crit-item" style="border-color:#14b8a6;">
-          <div class="crit-info">
-            <h4>Auditoria e segurança</h4>
-            <p>Keycloak events · LOGIN/LOGOUT/ERRORS · admin events</p>
-          </div>
-          <div class="crit-pct" style="color:#14b8a6;">10%</div>
-        </div>
-        <div class="crit-item" style="border-color:#64748b;">
-          <div class="crit-info">
-            <h4>Qualidade da demonstração</h4>
-            <p>Este dashboard · demo ao vivo · 10 minutos</p>
-          </div>
-          <div class="crit-pct" style="color:#64748b;">10%</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Diagrama de arquitetura inline -->
-    <div>
-      <div class="rpt-title">Diagrama de Componentes</div>
+    <div class="rpt-title">Arquitetura do Sistema</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+      <!-- Diagrama SVG -->
       <div class="arch-svg-wrap">
-        <svg viewBox="0 0 420 340" style="width:100%;">
-          <!-- Client -->
-          <rect x="10" y="140" width="90" height="60" rx="8" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
-          <text x="55" y="163" text-anchor="middle" fill="#94a3b8" font-size="11" font-family="monospace">Browser</text>
-          <text x="55" y="178" text-anchor="middle" fill="#475569" font-size="9">/ cURL</text>
-          <text x="55" y="193" text-anchor="middle" fill="#3b82f6" font-size="9">:8000</text>
-
-          <!-- FastAPI -->
-          <rect x="165" y="110" width="100" height="80" rx="8" fill="#082e25" stroke="#10b981" stroke-width="1.5"/>
-          <text x="215" y="135" text-anchor="middle" fill="#6ee7b7" font-size="11" font-family="monospace">FastAPI</text>
-          <text x="215" y="150" text-anchor="middle" fill="#475569" font-size="9">JWT validation</text>
-          <text x="215" y="163" text-anchor="middle" fill="#475569" font-size="9">RBAC / JML API</text>
-          <text x="215" y="183" text-anchor="middle" fill="#10b981" font-size="9">:8000</text>
-
-          <!-- Keycloak -->
-          <rect x="165" y="230" width="100" height="80" rx="8" fill="#1e1248" stroke="#8b5cf6" stroke-width="1.5"/>
-          <text x="215" y="255" text-anchor="middle" fill="#c4b5fd" font-size="11" font-family="monospace">Keycloak 26</text>
-          <text x="215" y="270" text-anchor="middle" fill="#475569" font-size="9">OIDC · SSO</text>
-          <text x="215" y="283" text-anchor="middle" fill="#475569" font-size="9">Admin API</text>
-          <text x="215" y="302" text-anchor="middle" fill="#8b5cf6" font-size="9">:8081</text>
-
-          <!-- PostgreSQL -->
-          <rect x="320" y="230" width="90" height="80" rx="8" fill="#1e293b" stroke="#0ea5e9" stroke-width="1.5"/>
-          <text x="365" y="255" text-anchor="middle" fill="#7dd3fc" font-size="11" font-family="monospace">PostgreSQL</text>
-          <text x="365" y="270" text-anchor="middle" fill="#475569" font-size="9">Keycloak DB</text>
-          <text x="365" y="283" text-anchor="middle" fill="#475569" font-size="9">users · events</text>
-          <text x="365" y="302" text-anchor="middle" fill="#0ea5e9" font-size="9">:5432</text>
-
-          <!-- JML box -->
-          <rect x="320" y="30" width="90" height="80" rx="8" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5,3"/>
-          <text x="365" y="55" text-anchor="middle" fill="#fcd34d" font-size="10" font-weight="bold">JML Scripts</text>
-          <text x="365" y="72" text-anchor="middle" fill="#64748b" font-size="8">joiner.py</text>
-          <text x="365" y="85" text-anchor="middle" fill="#64748b" font-size="8">mover.py</text>
-          <text x="365" y="98" text-anchor="middle" fill="#64748b" font-size="8">leaver.py</text>
-
-          <!-- Arrows -->
-          <!-- Client → FastAPI -->
-          <line x1="100" y1="170" x2="163" y2="155" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#a1)"/>
-          <text x="128" y="153" text-anchor="middle" fill="#3b82f6" font-size="8">Bearer JWT</text>
-
-          <!-- FastAPI ↔ Keycloak -->
-          <line x1="215" y1="190" x2="215" y2="228" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#a2)"/>
-          <text x="230" y="214" fill="#10b981" font-size="8">JWKS / token</text>
-
-          <!-- Keycloak → PostgreSQL -->
-          <line x1="265" y1="270" x2="318" y2="270" stroke="#0ea5e9" stroke-width="1.5" marker-end="url(#a3)"/>
-          <text x="290" y="263" text-anchor="middle" fill="#0ea5e9" font-size="8">JDBC</text>
-
-          <!-- JML → Keycloak -->
-          <path d="M330 110 L215 228" fill="none" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,2" marker-end="url(#a4)"/>
-          <text x="295" y="175" fill="#f59e0b" font-size="8">Admin API</text>
-
+        <svg viewBox="0 0 480 320" style="width:100%;background:#0f172a;border-radius:8px;padding:8px;">
+          <rect x="20" y="130" width="80" height="60" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
+          <text x="60" y="156" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">Browser</text>
+          <text x="60" y="170" text-anchor="middle" fill="#475569" font-size="9">Dashboard</text>
+          <text x="60" y="182" text-anchor="middle" fill="#475569" font-size="9">:8000</text>
+          <rect x="190" y="100" width="100" height="70" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
+          <text x="240" y="126" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">FastAPI</text>
+          <text x="240" y="140" text-anchor="middle" fill="#475569" font-size="9">RBAC + JWT</text>
+          <text x="240" y="153" text-anchor="middle" fill="#475569" font-size="9">validation</text>
+          <text x="240" y="166" text-anchor="middle" fill="#10b981" font-size="9">:8000</text>
+          <rect x="190" y="220" width="100" height="70" rx="6" fill="#1e293b" stroke="#8b5cf6" stroke-width="1.5"/>
+          <text x="240" y="246" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">Keycloak 26</text>
+          <text x="240" y="260" text-anchor="middle" fill="#475569" font-size="9">OIDC / SSO</text>
+          <text x="240" y="273" text-anchor="middle" fill="#475569" font-size="9">Admin API</text>
+          <text x="240" y="286" text-anchor="middle" fill="#8b5cf6" font-size="9">:8081</text>
+          <rect x="370" y="220" width="90" height="70" rx="6" fill="#1e293b" stroke="#0ea5e9" stroke-width="1.5"/>
+          <text x="415" y="246" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">PostgreSQL</text>
+          <text x="415" y="260" text-anchor="middle" fill="#475569" font-size="9">Keycloak DB</text>
+          <text x="415" y="273" text-anchor="middle" fill="#475569" font-size="9">user store</text>
+          <text x="415" y="286" text-anchor="middle" fill="#0ea5e9" font-size="9">:5432</text>
+          <line x1="100" y1="160" x2="190" y2="140" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arrhome)"/>
+          <text x="142" y="143" text-anchor="middle" fill="#3b82f6" font-size="8">Bearer JWT</text>
+          <line x1="240" y1="170" x2="240" y2="220" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arrhome)"/>
+          <text x="254" y="200" fill="#10b981" font-size="8">JWKS / Admin</text>
+          <line x1="290" y1="255" x2="370" y2="255" stroke="#0ea5e9" stroke-width="1.5" marker-end="url(#arrhome)"/>
+          <text x="328" y="248" text-anchor="middle" fill="#0ea5e9" font-size="8">JDBC</text>
+          <rect x="360" y="100" width="110" height="60" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
+          <text x="415" y="120" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="bold">JML Scripts</text>
+          <text x="415" y="133" text-anchor="middle" fill="#475569" font-size="8">joiner · mover · leaver</text>
+          <line x1="370" y1="130" x2="290" y2="255" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrhome2)"/>
+          <text x="346" y="190" fill="#f59e0b" font-size="8">Admin API</text>
           <defs>
-            <marker id="a1" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
-              <polygon points="0 0,8 3,0 6" fill="#3b82f6"/>
+            <marker id="arrhome" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#475569"/>
             </marker>
-            <marker id="a2" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
-              <polygon points="0 0,8 3,0 6" fill="#10b981"/>
-            </marker>
-            <marker id="a3" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
-              <polygon points="0 0,8 3,0 6" fill="#0ea5e9"/>
-            </marker>
-            <marker id="a4" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
-              <polygon points="0 0,8 3,0 6" fill="#f59e0b"/>
+            <marker id="arrhome2" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
+              <polygon points="0 0, 8 3, 0 6" fill="#f59e0b"/>
             </marker>
           </defs>
         </svg>
+      </div>
+      <!-- Stack + MFA -->
+      <div style="display:flex;flex-direction:column;gap:16px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px;">Stack Técnica</div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">Keycloak</span><span style="font-size:13px;color:#8b5cf6;font-weight:600;">26.2.5</span></div>
+            <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">PostgreSQL</span><span style="font-size:13px;color:#0ea5e9;font-weight:600;">16-alpine</span></div>
+            <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">Python</span><span style="font-size:13px;color:#f59e0b;font-weight:600;">3.12-slim</span></div>
+            <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">FastAPI</span><span style="font-size:13px;color:#10b981;font-weight:600;">0.115.12</span></div>
+            <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">JWT lib</span><span style="font-size:13px;color:#3b82f6;font-weight:600;">python-jose 3.3.0</span></div>
+            <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">Algoritmo</span><span style="font-size:13px;color:#ec4899;font-weight:600;">RS256 (JWKS)</span></div>
+          </div>
+        </div>
+        <div style="padding:12px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
+          <div style="font-size:12px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">Decisões de Segurança</div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+            <div>✓ JWT assinado RS256 via JWKS (sem segredo partilhado)</div>
+            <div>✓ TOTP obrigatório para o role <code style="color:#c4b5fd;">admin</code></div>
+            <div>✓ Sessões revogadas imediatamente no Mover/Leaver</div>
+            <div>✓ PostgreSQL não exposto externamente (Docker network)</div>
+            <div>✓ Realm exportado e versionado em <code style="color:#6ee7b7;">realm-export.json</code></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -825,135 +683,430 @@
 
 
 <!-- ===================================================
-     TAB: ARQUITETURA
+     TAB: DEMO
      =================================================== -->
 <div id="page-arch" style="display:none;">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
 
-    <div class="card" style="padding:24px;">
-      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:20px;">Diagrama de Arquitetura</h2>
-      <svg viewBox="0 0 480 320" style="width:100%;background:#0f172a;border-radius:8px;padding:8px;">
-        <rect x="20" y="130" width="80" height="60" rx="6" fill="#1e293b" stroke="#3b82f6" stroke-width="1.5"/>
-        <text x="60" y="156" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">Browser</text>
-        <text x="60" y="170" text-anchor="middle" fill="#475569" font-size="9">Dashboard</text>
-        <text x="60" y="182" text-anchor="middle" fill="#475569" font-size="9">:8000</text>
-        <rect x="190" y="100" width="100" height="70" rx="6" fill="#1e293b" stroke="#10b981" stroke-width="1.5"/>
-        <text x="240" y="126" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">FastAPI</text>
-        <text x="240" y="140" text-anchor="middle" fill="#475569" font-size="9">RBAC + JWT</text>
-        <text x="240" y="153" text-anchor="middle" fill="#475569" font-size="9">validation</text>
-        <text x="240" y="166" text-anchor="middle" fill="#10b981" font-size="9">:8000</text>
-        <rect x="190" y="220" width="100" height="70" rx="6" fill="#1e293b" stroke="#8b5cf6" stroke-width="1.5"/>
-        <text x="240" y="246" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">Keycloak 26</text>
-        <text x="240" y="260" text-anchor="middle" fill="#475569" font-size="9">OIDC / SSO</text>
-        <text x="240" y="273" text-anchor="middle" fill="#475569" font-size="9">Admin API</text>
-        <text x="240" y="286" text-anchor="middle" fill="#8b5cf6" font-size="9">:8081</text>
-        <rect x="370" y="220" width="90" height="70" rx="6" fill="#1e293b" stroke="#0ea5e9" stroke-width="1.5"/>
-        <text x="415" y="246" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="monospace">PostgreSQL</text>
-        <text x="415" y="260" text-anchor="middle" fill="#475569" font-size="9">Keycloak DB</text>
-        <text x="415" y="273" text-anchor="middle" fill="#475569" font-size="9">user store</text>
-        <text x="415" y="286" text-anchor="middle" fill="#0ea5e9" font-size="9">:5432</text>
-        <line x1="100" y1="160" x2="190" y2="140" stroke="#3b82f6" stroke-width="1.5" marker-end="url(#arr)"/>
-        <text x="142" y="143" text-anchor="middle" fill="#3b82f6" font-size="8">Bearer JWT</text>
-        <line x1="240" y1="170" x2="240" y2="220" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr)"/>
-        <text x="254" y="200" fill="#10b981" font-size="8">JWKS / Admin</text>
-        <line x1="290" y1="255" x2="370" y2="255" stroke="#0ea5e9" stroke-width="1.5" marker-end="url(#arr)"/>
-        <text x="328" y="248" text-anchor="middle" fill="#0ea5e9" font-size="8">JDBC</text>
-        <rect x="360" y="100" width="110" height="60" rx="6" fill="#1e293b" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
-        <text x="415" y="120" text-anchor="middle" fill="#f59e0b" font-size="9" font-weight="bold">JML Scripts</text>
-        <text x="415" y="133" text-anchor="middle" fill="#475569" font-size="8">Joiner</text>
-        <text x="415" y="145" text-anchor="middle" fill="#475569" font-size="8">Mover</text>
-        <text x="415" y="157" text-anchor="middle" fill="#475569" font-size="8">Leaver</text>
-        <line x1="370" y1="130" x2="290" y2="255" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arr2)"/>
-        <defs>
-          <marker id="arr" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#475569"/>
-          </marker>
-          <marker id="arr2" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto">
-            <polygon points="0 0, 8 3, 0 6" fill="#f59e0b"/>
-          </marker>
-        </defs>
-      </svg>
+  <!-- Cabeçalho -->
+  <div class="card" style="padding:24px;margin-bottom:24px;background:linear-gradient(135deg,#0f172a 0%,#1e1a3a 100%);border-color:#4c1d95;">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div style="font-size:36px;">🎬</div>
+      <div>
+        <h2 style="font-size:22px;font-weight:800;color:#f1f5f9;margin:0 0 4px;">Demo ao Vivo — Guia Passo a Passo</h2>
+        <p style="font-size:14px;color:#94a3b8;margin:0;">Percurso completo de ~10 minutos para demonstrar todas as funcionalidades do projeto IAM.</p>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+        <span style="padding:4px 12px;background:#1e40af;color:#93c5fd;border-radius:20px;font-size:12px;font-weight:600;">8 passos</span>
+        <span style="padding:4px 12px;background:#064e3b;color:#6ee7b7;border-radius:20px;font-size:12px;font-weight:600;">~10 min</span>
+      </div>
     </div>
+  </div>
 
-    <div class="card" style="padding:24px;">
-      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;">Critérios de Avaliação (0–20)</h2>
-      <div style="display:flex;flex-direction:column;gap:10px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #10b981;">
-          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">Arquitetura e coerência técnica</div><div style="font-size:11px;color:#475569;">Keycloak + FastAPI + PostgreSQL · Docker Compose · realm-export.json</div></div>
-          <div style="font-size:12px;font-weight:700;color:#10b981;">20%</div>
+  <!-- Passo 1 -->
+  <div class="card" style="padding:24px;margin-bottom:16px;border-left:4px solid #10b981;">
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="min-width:36px;height:36px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;">1</div>
+      <div style="flex:1;">
+        <h3 style="font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 6px;">Arranque dos Serviços</h3>
+        <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">Mostrar o ambiente a arrancar e confirmar que os 3 serviços estão a correr.</p>
+        <div style="background:#0f172a;border-radius:8px;padding:12px;font-family:monospace;font-size:12px;color:#6ee7b7;margin-bottom:12px;">
+          $ docker compose up --build<br>
+          <span style="color:#475569;"># Aguardar ~2-3 min (Keycloak tem 90s de start_period)</span><br>
+          <span style="color:#4ade80;">✓ keycloak   | Keycloak 26 started</span><br>
+          <span style="color:#4ade80;">✓ postgres   | database system is ready</span><br>
+          <span style="color:#4ade80;">✓ app        | Uvicorn running on http://0.0.0.0:8000</span>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #3b82f6;">
-          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">Autenticação / Federação</div><div style="font-size:11px;color:#475569;">OIDC via Keycloak · JWT RS256 · claims: sub, email, roles</div></div>
-          <div style="font-size:12px;font-weight:700;color:#3b82f6;">15%</div>
+        <!-- Screenshot placeholder -->
+        <div style="background:#0f172a;border:2px dashed #334155;border-radius:8px;padding:20px;text-align:center;color:#475569;">
+          <div style="font-size:24px;margin-bottom:8px;">🖥️</div>
+          <div style="font-size:12px;font-weight:600;color:#64748b;">SCREENSHOT — Terminal com docker compose up</div>
+          <div style="font-size:11px;margin-top:4px;">Mostrar os 3 containers a subir: keycloak, postgres, app</div>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #6366f1;">
-          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">Autorização (RBAC)</div><div style="font-size:11px;color:#475569;">3 roles · endpoints protegidos · 200/403 demonstrável</div></div>
-          <div style="font-size:12px;font-weight:700;color:#6366f1;">15%</div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #f59e0b;">
-          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">JML (Joiner · Mover · Leaver)</div><div style="font-size:11px;color:#475569;">Via Keycloak Admin REST API · revogação de sessões</div></div>
-          <div style="font-size:12px;font-weight:700;color:#f59e0b;">15%</div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #ec4899;">
-          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">MFA (TOTP via Keycloak)</div><div style="font-size:11px;color:#475569;">admin.user → CONFIGURE_TOTP required · browser-mfa flow</div></div>
-          <div style="font-size:12px;font-weight:700;color:#ec4899;">15%</div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #14b8a6;">
-          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">Auditoria e segurança</div><div style="font-size:11px;color:#475569;">Keycloak events · LOGIN/LOGOUT/ERRORS · admin events</div></div>
-          <div style="font-size:12px;font-weight:700;color:#14b8a6;">10%</div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0f172a;border-radius:8px;border-left:3px solid #64748b;">
-          <div><div style="font-size:13px;font-weight:600;color:#f1f5f9;">Qualidade da demonstração</div><div style="font-size:11px;color:#475569;">Este dashboard · demo ao vivo · 10 minutos</div></div>
-          <div style="font-size:12px;font-weight:700;color:#64748b;">10%</div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <span style="font-size:11px;background:#0f172a;color:#94a3b8;padding:4px 10px;border-radius:6px;border:1px solid #1e293b;">Keycloak Admin: <code style="color:#8b5cf6;">localhost:8081</code></span>
+          <span style="font-size:11px;background:#0f172a;color:#94a3b8;padding:4px 10px;border-radius:6px;border:1px solid #1e293b;">FastAPI Swagger: <code style="color:#10b981;">localhost:8000/docs</code></span>
+          <span style="font-size:11px;background:#0f172a;color:#94a3b8;padding:4px 10px;border-radius:6px;border:1px solid #1e293b;">Dashboard: <code style="color:#3b82f6;">localhost:8000/dashboard</code></span>
         </div>
       </div>
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-    <div class="card" style="padding:24px;">
-      <h2 style="font-size:14px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:16px;">Stack Técnica</h2>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">Keycloak</span><span style="font-size:13px;color:#8b5cf6;font-weight:600;">26.2.5</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">PostgreSQL</span><span style="font-size:13px;color:#0ea5e9;font-weight:600;">16-alpine</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">Python</span><span style="font-size:13px;color:#f59e0b;font-weight:600;">3.12-slim</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">FastAPI</span><span style="font-size:13px;color:#10b981;font-weight:600;">0.115.12</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">JWT lib</span><span style="font-size:13px;color:#3b82f6;font-weight:600;">python-jose 3.3.0</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">Algoritmo</span><span style="font-size:13px;color:#ec4899;font-weight:600;">RS256 (JWKS)</span></div>
-        <div style="display:flex;justify-content:space-between;padding:8px 12px;background:#0f172a;border-radius:6px;"><span style="font-size:13px;color:#94a3b8;">Realm</span><span style="font-size:13px;color:#f1f5f9;font-weight:600;">iam-tp</span></div>
-      </div>
-    </div>
-
-    <div class="card" style="padding:24px;">
-      <h2 style="font-size:14px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:16px;">Setup MFA — admin.user</h2>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:#0f172a;border-radius:6px;">
-          <span style="background:#1e40af;color:#fff;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">1</span>
-          <span style="font-size:13px;color:#94a3b8;">Abrir <code style="color:#3b82f6;">http://localhost:8081</code> → <em>Realm iam-tp</em></span>
+  <!-- Passo 2 -->
+  <div class="card" style="padding:24px;margin-bottom:16px;border-left:4px solid #3b82f6;">
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="min-width:36px;height:36px;background:#3b82f6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;">2</div>
+      <div style="flex:1;">
+        <h3 style="font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 6px;">Login como <code style="color:#93c5fd;">colaborador.user</code></h3>
+        <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">Selecionar o preset de <strong>colaborador.user</strong> → clicar "Entrar via Keycloak" → observar o JWT payload, roles e tempo de expiração no painel "Sessão Atual".</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div style="background:#0f172a;border-radius:8px;padding:12px;">
+            <div style="font-size:11px;color:#64748b;margin-bottom:6px;font-weight:600;">O que mostrar:</div>
+            <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+              ✓ Campo <code style="color:#93c5fd;">sub</code> (UUID do utilizador)<br>
+              ✓ Campo <code style="color:#93c5fd;">email</code><br>
+              ✓ <code style="color:#93c5fd;">realm_access.roles</code>: ["colaborador"]<br>
+              ✓ Tempo até expirar (padrão: 5 min)
+            </div>
+          </div>
+          <div style="background:#0f172a;border-radius:8px;padding:12px;">
+            <div style="font-size:11px;color:#64748b;margin-bottom:6px;font-weight:600;">Credenciais:</div>
+            <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+              Username: <code style="color:#93c5fd;">colaborador.user</code><br>
+              Password: <code style="color:#93c5fd;">Colab@1234</code><br>
+              MFA: Não requerido<br>
+              Role: <span style="background:#2563eb;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;">colaborador</span>
+            </div>
+          </div>
         </div>
-        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:#0f172a;border-radius:6px;">
-          <span style="background:#1e40af;color:#fff;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">2</span>
-          <span style="font-size:13px;color:#94a3b8;">Login como <code style="color:#3b82f6;">admin.user / Admin@1234</code> → o Keycloak pede setup TOTP</span>
+        <div style="background:#0f172a;border:2px dashed #334155;border-radius:8px;padding:20px;text-align:center;color:#475569;">
+          <div style="font-size:24px;margin-bottom:8px;">🔐</div>
+          <div style="font-size:12px;font-weight:600;color:#64748b;">SCREENSHOT — Tab Autenticação após login colaborador.user</div>
+          <div style="font-size:11px;margin-top:4px;">Painel "Sessão Atual" com avatar, email, badge colaborador e JWT expandido</div>
         </div>
-        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:#0f172a;border-radius:6px;">
-          <span style="background:#1e40af;color:#fff;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">3</span>
-          <span style="font-size:13px;color:#94a3b8;">Scan QR code com <strong>Google Authenticator</strong> ou <strong>Authy</strong></span>
+        <div style="margin-top:10px;">
+          <button class="btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showTab('auth')">→ Abrir Tab Autenticação</button>
         </div>
-        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:#0f172a;border-radius:6px;">
-          <span style="background:#1e40af;color:#fff;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">4</span>
-          <span style="font-size:13px;color:#94a3b8;">Inserir o OTP de 6 dígitos → TOTP configurado ✅</span>
-        </div>
-        <div style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:#0f172a;border-radius:6px;">
-          <span style="background:#1e40af;color:#fff;min-width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">5</span>
-          <span style="font-size:13px;color:#94a3b8;">Próximos logins pedem: password + OTP (browser-mfa flow)</span>
-        </div>
-      </div>
-      <div style="margin-top:12px;padding:10px;background:#052e16;border:1px solid #16a34a;border-radius:6px;font-size:12px;color:#4ade80;">
-        ✅ <code>admin.user</code> tem <code>CONFIGURE_TOTP</code> como Required Action no realm-export.json
       </div>
     </div>
   </div>
-</div><!-- /page-arch -->
+
+  <!-- Passo 3 -->
+  <div class="card" style="padding:24px;margin-bottom:16px;border-left:4px solid #6366f1;">
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="min-width:36px;height:36px;background:#6366f1;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;">3</div>
+      <div style="flex:1;">
+        <h3 style="font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 6px;">Testar RBAC — Controlo de Acesso por Role</h3>
+        <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">Navegar para a Tab <strong>Autorização</strong> e clicar "Testar Todos os Endpoints". Demonstrar como o colaborador.user tem acesso a <code style="color:#6ee7b7;">/colaborador/*</code> mas é negado em <code style="color:#f87171;">/admin/*</code>.</p>
+        <div style="background:#0f172a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;line-height:1.9;">
+          <span style="color:#4ade80;">✅ 200</span> <code style="color:#94a3b8;">/public</code> — público, sem token<br>
+          <span style="color:#4ade80;">✅ 200</span> <code style="color:#94a3b8;">/me</code> — qualquer token válido<br>
+          <span style="color:#4ade80;">✅ 200</span> <code style="color:#94a3b8;">/colaborador/data</code> — role colaborador ✓<br>
+          <span style="color:#4ade80;">✅ 200</span> <code style="color:#94a3b8;">/colaborador/perfil</code> — role colaborador ✓<br>
+          <span style="color:#f87171;">❌ 403</span> <code style="color:#94a3b8;">/admin/users</code> — requer role admin<br>
+          <span style="color:#f87171;">❌ 403</span> <code style="color:#94a3b8;">/admin/audit</code> — requer role admin<br>
+          <span style="color:#f87171;">❌ 403</span> <code style="color:#94a3b8;">/admin/mfa-area</code> — requer admin + MFA
+        </div>
+        <div style="background:#0f172a;border:2px dashed #334155;border-radius:8px;padding:20px;text-align:center;color:#475569;">
+          <div style="font-size:24px;margin-bottom:8px;">🛡️</div>
+          <div style="font-size:12px;font-weight:600;color:#64748b;">SCREENSHOT — Tab Autorização com resultados "Testar Todos"</div>
+          <div style="font-size:11px;margin-top:4px;">Tabela de endpoints com ✅/❌, resposta HTTP e latência</div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showTab('rbac')">→ Abrir Tab Autorização</button>
+        </div>
+
+        <!-- Testes unitários -->
+        <div style="margin-top:24px;padding-top:24px;border-top:1px solid #1e293b;">
+
+          <!-- Cabeçalho -->
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+            <h4 style="font-size:15px;font-weight:700;color:#f1f5f9;margin:0;">Testes Unitários — <code style="color:#a5b4fc;">pytest</code></h4>
+            <span style="background:#0c1a2e;border:1px solid #2563eb;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:600;color:#60a5fa;white-space:nowrap;">🔌 Sem Docker &nbsp;·&nbsp; Sem Keycloak &nbsp;·&nbsp; Sem rede</span>
+          </div>
+
+          <!-- Estratégia de mock -->
+          <div style="background:#0f172a;border:1px solid #1e40af;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;color:#3b82f6;letter-spacing:.06em;margin-bottom:10px;">ESTRATÉGIA DE MOCK — como substituímos o Keycloak</div>
+            <div style="display:flex;align-items:center;gap:0;font-size:12px;flex-wrap:wrap;gap:4px;">
+              <div style="background:#1e3a5f;border:1px solid #2563eb;border-radius:6px;padding:7px 12px;color:#93c5fd;text-align:center;">
+                <div style="font-weight:700;">RSA 2048</div>
+                <div style="font-size:10px;color:#60a5fa;">gerado em memória</div>
+              </div>
+              <div style="color:#334155;font-size:16px;padding:0 6px;">→</div>
+              <div style="background:#1e3a5f;border:1px solid #2563eb;border-radius:6px;padding:7px 12px;color:#93c5fd;text-align:center;">
+                <div style="font-weight:700;">JWK público</div>
+                <div style="font-size:10px;color:#60a5fa;">substitui JWKS do Keycloak</div>
+              </div>
+              <div style="color:#334155;font-size:16px;padding:0 6px;">→</div>
+              <div style="background:#1e3a5f;border:1px solid #2563eb;border-radius:6px;padding:7px 12px;color:#93c5fd;text-align:center;">
+                <div style="font-weight:700;"><code style="color:#a5b4fc;">patch.object</code></div>
+                <div style="font-size:10px;color:#60a5fa;"><code>auth._get_jwks</code> mockado</div>
+              </div>
+              <div style="color:#334155;font-size:16px;padding:0 6px;">→</div>
+              <div style="background:#1e3a5f;border:1px solid #2563eb;border-radius:6px;padding:7px 12px;color:#93c5fd;text-align:center;">
+                <div style="font-weight:700;">JWT RS256 real</div>
+                <div style="font-size:10px;color:#60a5fa;">assinado + validado localmente</div>
+              </div>
+            </div>
+            <div style="margin-top:10px;font-size:11px;color:#475569;line-height:1.6;">
+              <code style="color:#6ee7b7;">unittest.mock.patch.object(auth, "_get_jwks", new=fake_get_jwks)</code> — o código de produção em <code style="color:#c4b5fd;">app/auth.py</code> é executado na íntegra; apenas a chamada HTTP ao Keycloak é substituída por uma função que devolve o JWK gerado localmente.
+            </div>
+          </div>
+
+          <!-- Os 4 testes individualmente -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+
+            <!-- Teste 1 -->
+            <div style="background:#0a1f0a;border:1px solid #16a34a;border-radius:8px;padding:12px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="background:#15803d;color:#fff;font-size:10px;font-weight:700;border-radius:4px;padding:2px 7px;">PASS</span>
+                <code style="font-size:11px;color:#86efac;">test_require_role_allows_admin</code>
+              </div>
+              <div style="font-size:11px;color:#4ade80;font-weight:600;margin-bottom:4px;">require_role("admin")</div>
+              <div style="font-size:11px;color:#6b7280;line-height:1.6;">Invoca a dependência FastAPI com um payload que tem <code style="color:#86efac;">realm_access.roles: ["admin"]</code>. Verifica que o dict é devolvido sem exceção.</div>
+            </div>
+
+            <!-- Teste 2 -->
+            <div style="background:#0a1f0a;border:1px solid #16a34a;border-radius:8px;padding:12px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="background:#15803d;color:#fff;font-size:10px;font-weight:700;border-radius:4px;padding:2px 7px;">PASS</span>
+                <code style="font-size:11px;color:#86efac;">test_require_role_denies_non_admin</code>
+              </div>
+              <div style="font-size:11px;color:#4ade80;font-weight:600;margin-bottom:4px;">require_role("admin") — role errada</div>
+              <div style="font-size:11px;color:#6b7280;line-height:1.6;">Passa <code style="color:#86efac;">roles: ["visitante"]</code>. Afirma que é lançada uma exceção HTTP 403 com mensagem <em>"Acesso negado"</em>.</div>
+            </div>
+
+            <!-- Teste 3 -->
+            <div style="background:#0a1f0a;border:1px solid #16a34a;border-radius:8px;padding:12px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="background:#15803d;color:#fff;font-size:10px;font-weight:700;border-radius:4px;padding:2px 7px;">PASS</span>
+                <code style="font-size:11px;color:#86efac;">test_require_mfa_denies_without_otp</code>
+              </div>
+              <div style="font-size:11px;color:#4ade80;font-weight:600;margin-bottom:4px;">require_mfa() — claim amr sem OTP</div>
+              <div style="font-size:11px;color:#6b7280;line-height:1.6;">Passa <code style="color:#86efac;">amr: ["pwd"]</code>. Afirma que é lançada HTTP 403 com mensagem <em>"MFA"</em> — nenhum dos métodos OTP reconhecidos está presente.</div>
+            </div>
+
+            <!-- Teste 4 -->
+            <div style="background:#0a1f0a;border:1px solid #16a34a;border-radius:8px;padding:12px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+                <span style="background:#15803d;color:#fff;font-size:10px;font-weight:700;border-radius:4px;padding:2px 7px;">PASS</span>
+                <code style="font-size:11px;color:#86efac;">test_get_current_user_decodes_rs256_token</code>
+              </div>
+              <div style="font-size:11px;color:#4ade80;font-weight:600;margin-bottom:4px;">get_current_user — JWT RS256 real</div>
+              <div style="font-size:11px;color:#6b7280;line-height:1.6;">Gera par RSA, cria JWT com <code style="color:#86efac;">python-jose</code>, injeta JWKS falso via mock. Valida que <code style="color:#86efac;">preferred_username</code>, <code style="color:#86efac;">aud</code> e <code style="color:#86efac;">iss</code> são corretamente extraídos.</div>
+            </div>
+
+          </div>
+
+          <!-- Output do pytest (realista) -->
+          <div style="background:#0a0a0a;border:1px solid #1e293b;border-radius:8px;overflow:hidden;margin-bottom:14px;">
+            <div style="background:#111827;padding:8px 14px;border-bottom:1px solid #1e293b;display:flex;align-items:center;gap:8px;">
+              <span style="width:10px;height:10px;background:#ef4444;border-radius:50%;display:inline-block;"></span>
+              <span style="width:10px;height:10px;background:#f59e0b;border-radius:50%;display:inline-block;"></span>
+              <span style="width:10px;height:10px;background:#10b981;border-radius:50%;display:inline-block;"></span>
+              <span style="font-size:11px;color:#64748b;margin-left:6px;font-family:monospace;">terminal</span>
+            </div>
+            <div style="padding:14px;font-family:monospace;font-size:11.5px;line-height:1.9;color:#94a3b8;">
+              <span style="color:#64748b;">$ pip install -r app/requirements.txt -r requirements-dev.txt</span><br>
+              <span style="color:#4ade80;">Successfully installed ...</span><br><br>
+              <span style="color:#64748b;">$ python -m pytest tests/ -v</span><br>
+              <span style="color:#475569;">========================= test session starts ==========================</span><br>
+              <span style="color:#64748b;">platform win32 -- Python 3.12.3, pytest-8.3.5</span><br>
+              <span style="color:#64748b;">rootdir: C:\...\Projeto_IAM</span><br>
+              <span style="color:#64748b;">collected 4 items</span><br><br>
+              <span style="color:#94a3b8;">tests/test_auth.py::</span><span style="color:#f8fafc;">test_require_role_allows_admin</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#4ade80;font-weight:700;">PASSED</span><br>
+              <span style="color:#94a3b8;">tests/test_auth.py::</span><span style="color:#f8fafc;">test_require_role_denies_non_admin</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#4ade80;font-weight:700;">PASSED</span><br>
+              <span style="color:#94a3b8;">tests/test_auth.py::</span><span style="color:#f8fafc;">test_require_mfa_denies_without_otp</span>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#4ade80;font-weight:700;">PASSED</span><br>
+              <span style="color:#94a3b8;">tests/test_auth.py::</span><span style="color:#f8fafc;">test_get_current_user_decodes_rs256_token</span>&nbsp;<span style="color:#4ade80;font-weight:700;">PASSED</span><br><br>
+              <span style="color:#475569;">========================== </span><span style="color:#4ade80;font-weight:700;">4 passed</span><span style="color:#475569;"> in 0.42s ===========================</span>
+            </div>
+          </div>
+
+          <!-- Cobertura resumida -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;font-size:11px;">
+            <div style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:10px;text-align:center;">
+              <div style="font-size:18px;font-weight:800;color:#a5b4fc;">app/auth.py</div>
+              <div style="color:#64748b;margin-top:2px;">módulo testado</div>
+            </div>
+            <div style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:10px;text-align:center;">
+              <div style="font-size:18px;font-weight:800;color:#6ee7b7;">4 / 4</div>
+              <div style="color:#64748b;margin-top:2px;">testes passaram</div>
+            </div>
+            <div style="background:#0f172a;border:1px solid #334155;border-radius:6px;padding:10px;text-align:center;">
+              <div style="font-size:18px;font-weight:800;color:#fbbf24;">&lt; 0.5 s</div>
+              <div style="color:#64748b;margin-top:2px;">sem I/O externo</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passo 4 -->
+  <div class="card" style="padding:24px;margin-bottom:16px;border-left:4px solid #ec4899;">
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="min-width:36px;height:36px;background:#ec4899;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;">4</div>
+      <div style="flex:1;">
+        <h3 style="font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 6px;">Login como <code style="color:#f9a8d4;">admin.user</code> com MFA (TOTP)</h3>
+        <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">Fazer logout e depois login com admin.user. O campo OTP aparece automaticamente. Inserir o código de 6 dígitos gerado pelo <strong>Google Authenticator</strong>. Observar o badge <span style="background:#dc2626;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;">admin</span> e o claim <code style="color:#c4b5fd;">amr: ["otp"]</code> no JWT payload.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div style="background:#1c0a2e;border:1px solid #7c3aed;border-radius:8px;padding:12px;">
+            <div style="font-size:11px;color:#a78bfa;margin-bottom:6px;font-weight:600;">MFA Flow:</div>
+            <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+              1. Selecionar preset admin.user<br>
+              2. Campo OTP aparece (expand)<br>
+              3. Abrir Google Authenticator<br>
+              4. Inserir código de 6 dígitos<br>
+              5. Clicar "Entrar via Keycloak"
+            </div>
+          </div>
+          <div style="background:#0f172a;border-radius:8px;padding:12px;">
+            <div style="font-size:11px;color:#64748b;margin-bottom:6px;font-weight:600;">JWT Claims MFA:</div>
+            <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+              <code style="color:#c4b5fd;">amr: ["otp"]</code><br>
+              <code style="color:#c4b5fd;">acr: "1"</code><br>
+              role: <span style="background:#dc2626;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;">admin</span><br>
+              MFA verificado: <span style="color:#4ade80;">✅</span>
+            </div>
+          </div>
+        </div>
+        <div style="background:#0f172a;border:2px dashed #334155;border-radius:8px;padding:20px;text-align:center;color:#475569;">
+          <div style="font-size:24px;margin-bottom:8px;">🔒</div>
+          <div style="font-size:12px;font-weight:600;color:#64748b;">SCREENSHOT — Tab Autenticação com admin.user + campo OTP visível</div>
+          <div style="font-size:11px;margin-top:4px;">Sessão ativa com badge admin, JWT expandido a mostrar amr: ["otp"]</div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showTab('auth')">→ Abrir Tab Autenticação</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passo 5 -->
+  <div class="card" style="padding:24px;margin-bottom:16px;border-left:4px solid #f59e0b;">
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="min-width:36px;height:36px;background:#f59e0b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;">5</div>
+      <div style="flex:1;">
+        <h3 style="font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 6px;">JML — Joiner: Criar Utilizador</h3>
+        <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">Na Tab <strong>JML</strong>, preencher o formulário Joiner para criar um utilizador de demonstração. O utilizador é criado no Keycloak e adicionado ao grupo correto automaticamente.</p>
+        <div style="background:#0f172a;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:#94a3b8;line-height:1.7;">
+          Username: <code style="color:#fcd34d;">demo.user</code> &nbsp;|&nbsp;
+          Email: <code style="color:#fcd34d;">demo@empresa.pt</code> &nbsp;|&nbsp;
+          Password: <code style="color:#fcd34d;">Demo@1234</code> &nbsp;|&nbsp;
+          Role: <span style="background:#2563eb;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;">colaborador</span>
+        </div>
+        <div style="background:#0f172a;border:2px dashed #334155;border-radius:8px;padding:20px;text-align:center;color:#475569;margin-bottom:12px;">
+          <div style="font-size:24px;margin-bottom:8px;">➕</div>
+          <div style="font-size:12px;font-weight:600;color:#64748b;">SCREENSHOT — Formulário Joiner preenchido + resposta de sucesso</div>
+          <div style="font-size:11px;margin-top:4px;">Banner verde "Utilizador criado com sucesso" + demo.user na lista</div>
+        </div>
+        <div style="padding:10px 14px;background:#052e16;border:1px solid #16a34a;border-radius:8px;font-size:12px;color:#4ade80;">
+          ✅ Keycloak Admin API cria o utilizador, atribui o role e adiciona ao grupo /Colaboradores atomicamente
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showTab('jml')">→ Abrir Tab JML</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passo 6 -->
+  <div class="card" style="padding:24px;margin-bottom:16px;border-left:4px solid #14b8a6;">
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="min-width:36px;height:36px;background:#14b8a6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;">6</div>
+      <div style="flex:1;">
+        <h3 style="font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 6px;">JML — Mover: Revogação Instantânea de Sessão</h3>
+        <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">Promover <code style="color:#5eead4;">demo.user</code> de <strong>colaborador</strong> para <strong>admin</strong>. O Keycloak revoga todas as sessões ativas imediatamente — o utilizador precisa de novo login para obter o token com o novo role.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div style="background:#0f172a;border-radius:8px;padding:12px;">
+            <div style="font-size:11px;color:#64748b;margin-bottom:6px;font-weight:600;">Preencher Mover:</div>
+            <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+              Username: <code style="color:#5eead4;">demo.user</code><br>
+              Role anterior: <span style="background:#2563eb;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;">colaborador</span><br>
+              Novo role: <span style="background:#dc2626;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;">admin</span>
+            </div>
+          </div>
+          <div style="background:#0f172a;border-radius:8px;padding:12px;">
+            <div style="font-size:11px;color:#64748b;margin-bottom:6px;font-weight:600;">O que acontece:</div>
+            <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+              1. Role trocado no Keycloak<br>
+              2. Grupo atualizado atomicamente<br>
+              3. <span style="color:#f87171;">Sessões revogadas de imediato</span><br>
+              4. Token antigo invalida em ~30s
+            </div>
+          </div>
+        </div>
+        <div style="background:#0f172a;border:2px dashed #334155;border-radius:8px;padding:20px;text-align:center;color:#475569;">
+          <div style="font-size:24px;margin-bottom:8px;">🔄</div>
+          <div style="font-size:12px;font-weight:600;color:#64748b;">SCREENSHOT — Mover executado + mensagem de sessão revogada</div>
+          <div style="font-size:11px;margin-top:4px;">Banner informativo + demo.user agora com badge admin na lista</div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showTab('jml')">→ Abrir Tab JML</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passo 7 -->
+  <div class="card" style="padding:24px;margin-bottom:16px;border-left:4px solid #ef4444;">
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="min-width:36px;height:36px;background:#ef4444;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;">7</div>
+      <div style="flex:1;">
+        <h3 style="font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 6px;">JML — Leaver: Desativar Utilizador</h3>
+        <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">Executar o Leaver para <code style="color:#fca5a5;">demo.user</code>. O utilizador é desativado no Keycloak e todas as sessões são revogadas. Qualquer tentativa de login falha com <code style="color:#f87171;">401 Unauthorized</code>.</p>
+        <div style="background:#2d0000;border:1px solid #dc2626;border-radius:8px;padding:12px;margin-bottom:12px;font-size:12px;color:#f87171;line-height:1.7;">
+          Após Leaver: tentar login com demo.user/Demo@1234<br>
+          → Keycloak retorna: <strong>401 invalid_grant: Account disabled</strong><br>
+          → FastAPI: <strong>401 Unauthorized</strong>
+        </div>
+        <div style="background:#0f172a;border:2px dashed #334155;border-radius:8px;padding:20px;text-align:center;color:#475569;">
+          <div style="font-size:24px;margin-bottom:8px;">🚫</div>
+          <div style="font-size:12px;font-weight:600;color:#64748b;">SCREENSHOT — Leaver executado + tentativa de login falhada</div>
+          <div style="font-size:11px;margin-top:4px;">Banner vermelho de conta desativada; login retorna 401</div>
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showTab('jml')">→ Abrir Tab JML</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Passo 8 -->
+  <div class="card" style="padding:24px;margin-bottom:16px;border-left:4px solid #8b5cf6;">
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <div style="min-width:36px;height:36px;background:#8b5cf6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0;">8</div>
+      <div style="flex:1;">
+        <h3 style="font-size:16px;font-weight:700;color:#f1f5f9;margin:0 0 6px;">Auditoria — Eventos em Tempo Real</h3>
+        <p style="font-size:13px;color:#94a3b8;margin:0 0 12px;">Na Tab <strong>Auditoria</strong>, consultar todos os eventos gerados durante a demo: LOGIN, LOGIN_ERROR, LOGOUT. Filtrar por tipo e ver o resumo agregado. O Keycloak regista automaticamente cada evento de segurança.</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+          <div style="background:#052e16;border:1px solid #16a34a;border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-size:20px;">✅</div>
+            <div style="font-size:12px;font-weight:700;color:#4ade80;margin-top:4px;">LOGIN</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">Autenticação bem-sucedida</div>
+          </div>
+          <div style="background:#2d0000;border:1px solid #dc2626;border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-size:20px;">❌</div>
+            <div style="font-size:12px;font-weight:700;color:#f87171;margin-top:4px;">LOGIN_ERROR</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">Password errada / conta desativada</div>
+          </div>
+          <div style="background:#1c1400;border:1px solid #ca8a04;border-radius:8px;padding:12px;text-align:center;">
+            <div style="font-size:20px;">🚪</div>
+            <div style="font-size:12px;font-weight:700;color:#facc15;margin-top:4px;">LOGOUT</div>
+            <div style="font-size:11px;color:#64748b;margin-top:2px;">Sessão terminada</div>
+          </div>
+        </div>
+        <div style="background:#0f172a;border:2px dashed #334155;border-radius:8px;padding:20px;text-align:center;color:#475569;margin-bottom:12px;">
+          <div style="font-size:24px;margin-bottom:8px;">📋</div>
+          <div style="font-size:12px;font-weight:600;color:#64748b;">SCREENSHOT — Tab Auditoria com lista de eventos da demo</div>
+          <div style="font-size:11px;margin-top:4px;">Tabela com timestamp, tipo, utilizador e IP; resumo por tipo de evento</div>
+        </div>
+        <div style="padding:10px 14px;background:#1c0a2e;border:1px solid #7c3aed;border-radius:8px;font-size:12px;color:#c4b5fd;">
+          🔒 <strong>Bonus:</strong> Demonstrar <code>/admin/mfa-area</code> — token sem MFA retorna 403; token com <code>amr: ["otp"]</code> retorna 200.
+        </div>
+        <div style="margin-top:10px;">
+          <button class="btn-primary" style="font-size:12px;padding:6px 14px;" onclick="showTab('audit')">→ Abrir Tab Auditoria</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resumo final -->
+  <div class="card" style="padding:24px;background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);border-color:#334155;">
+    <h3 style="font-size:15px;font-weight:700;color:#f1f5f9;margin:0 0 16px;">Resumo das Funcionalidades Demonstradas</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;">
+      <div style="background:#0f172a;padding:10px 14px;border-radius:8px;font-size:12px;color:#94a3b8;border-left:3px solid #10b981;">✓ Docker Compose · 3 serviços</div>
+      <div style="background:#0f172a;padding:10px 14px;border-radius:8px;font-size:12px;color:#94a3b8;border-left:3px solid #3b82f6;">✓ OIDC · JWT RS256 · JWKS</div>
+      <div style="background:#0f172a;padding:10px 14px;border-radius:8px;font-size:12px;color:#94a3b8;border-left:3px solid #6366f1;">✓ RBAC · 3 roles · 200/403</div>
+      <div style="background:#0f172a;padding:10px 14px;border-radius:8px;font-size:12px;color:#94a3b8;border-left:3px solid #ec4899;">✓ MFA TOTP · amr/acr claims</div>
+      <div style="background:#0f172a;padding:10px 14px;border-radius:8px;font-size:12px;color:#94a3b8;border-left:3px solid #f59e0b;">✓ Joiner · Mover · Leaver</div>
+      <div style="background:#0f172a;padding:10px 14px;border-radius:8px;font-size:12px;color:#94a3b8;border-left:3px solid #14b8a6;">✓ Revogação instantânea sessões</div>
+      <div style="background:#0f172a;padding:10px 14px;border-radius:8px;font-size:12px;color:#94a3b8;border-left:3px solid #8b5cf6;">✓ Auditoria · eventos Keycloak</div>
+    </div>
+  </div>
+
+</div><!-- /page-arch (Demo) -->
 
 </div><!-- /main -->
 
