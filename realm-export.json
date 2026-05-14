@@ -1,7 +1,7 @@
 {
   "id": "iam-tp",
   "realm": "iam-tp",
-  "displayName": "IAM Trabalho Pr\u00c3\u00a1tico",
+  "displayName": "IAM Trabalho PrÃ¡tico",
   "enabled": true,
   "sslRequired": "external",
   "registrationAllowed": false,
@@ -38,7 +38,7 @@
       {
         "id": "3063d69c-664f-4d57-9153-eaca938a5fec",
         "name": "visitante",
-        "description": "Visitante com acesso apenas a recursos p\u00c3\u00bablicos",
+        "description": "Visitante com acesso apenas a recursos pÃºblicos",
         "composite": false,
         "clientRole": false,
         "containerId": "iam-tp"
@@ -216,7 +216,7 @@
     {
       "id": "c8e2c0f7-a924-4f69-ac90-c2ccadb753e0",
       "alias": "browser-mfa",
-      "description": "Browser flow com MFA obrigat\u00c3\u00b3rio para admins",
+      "description": "Browser flow com MFA obrigatÃ³rio para admins",
       "providerId": "basic-flow",
       "topLevel": true,
       "builtIn": false,
@@ -298,6 +298,39 @@
           "autheticatorFlow": false
         }
       ]
+    },
+    {
+      "alias": "direct grant with otp",
+      "description": "Direct Grant com OTP para ROPC com MFA",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "direct-grant-validate-username",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "direct-grant-validate-password",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        },
+        {
+          "authenticator": "direct-grant-validate-otp",
+          "authenticatorFlow": false,
+          "requirement": "OPTIONAL",
+          "priority": 30,
+          "userSetupAllowed": false,
+          "autheticatorFlow": false
+        }
+      ]
     }
   ],
   "defaultDefaultClientScopes": [
@@ -313,5 +346,6 @@
     "address",
     "phone",
     "microprofile-jwt"
-  ]
+  ],
+  "directGrantFlow": "direct grant with otp"
 }

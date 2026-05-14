@@ -1,125 +1,50 @@
-%% ============================================================
-%%  Capítulo 4 — Desenho e Especificação
-%% ============================================================
+%% Capítulo 4 — Desenho e Especificação
 \chapter{Desenho e Especificação}
 \label{chap:desenho}
 
-\section{Arquitetura do Sistema}
+\section{Arquitetura}
 
-A arquitetura segue o padrão \textbf{Resource Server + Identity Provider}, com separação clara de responsabilidades entre os três serviços orquestrados por Docker Compose.
+A solução segue o padrão \textbf{Resource Server + Identity Provider}, com três serviços orquestrados por Docker Compose (Figura~\ref{fig:arquitetura}). Toda a configuração é declarativa: \texttt{docker-compose.yml}, \texttt{realm-export.json} (versionado em git) e \texttt{.env} (segredos, não versionado).
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=0.95\textwidth]{arquitetura_iam.png}
-  \caption{Arquitetura do projeto: FastAPI, Keycloak 26 e PostgreSQL 16 sob Docker Compose.}
+  \includegraphics[width=0.92\textwidth]{arquitetura_iam.png}
+  \caption{Arquitetura: FastAPI (\textit{resource server}), Keycloak 26 (\gls{idp}) e PostgreSQL 16, sob Docker Compose.}
   \label{fig:arquitetura}
 \end{figure}
 
-O fluxo principal, ilustrado na Figura~\ref{fig:arquitetura}, é: (1)~o cliente autentica no Keycloak e recebe um \gls{jwt} assinado com RS256; (2)~apresenta o token à FastAPI; (3)~a FastAPI valida a assinatura localmente via \gls{jwks} cacheado; (4)~aplica \gls{rbac}; (5)~responde ao cliente.
+\textbf{Fluxo principal}: cliente autentica no Keycloak → recebe \gls{jwt} RS256 → apresenta à FastAPI → validação local via \gls{jwks} cacheado → \gls{rbac} aplicado → resposta.
 
-\begin{table}[h!]
-\centering
-\caption{Componentes da arquitetura, portos e funções}
-\label{tab:componentes}
-\begin{tabular}{|l|c|l|}
-\hline
-\textbf{Componente} & \textbf{Porto} & \textbf{Função principal} \\ \hline
-Keycloak~26 & 8081 & \gls{idp}: emissão de \gls{jwt}, realm, \gls{rbac}, \gls{mfa}, auditoria \\ \hline
-FastAPI (Python~3.12) & 8000 & \textit{Resource server}: validação \gls{jwt}, endpoints protegidos, dashboard \\ \hline
-PostgreSQL~16 & 5432 & Base de dados persistente do Keycloak \\ \hline
-JML Scripts (\gls{cli}) & — & Automação do ciclo de vida via Admin \gls{api} \\ \hline
-\end{tabular}
-\end{table}
-
-\subsection{Reprodutibilidade da Infraestrutura}
-
-Toda a configuração é declarativa e versionada em git:
-
-\begin{itemize}
-  \item \textbf{\texttt{docker-compose.yml}} — define os três serviços, redes internas, volumes e \textit{health checks} sequenciais;
-  \item \textbf{\texttt{realm-export.json}} — exportação completa do \textit{realm} \texttt{iam-tp}: papéis, grupos, utilizadores, cliente \gls{oidc} e fluxos de \gls{mfa};
-  \item \textbf{\texttt{.env}} — credenciais sensíveis (não versionado), seguindo o princípio de não expor \textit{secrets} no código.
-\end{itemize}
-
-\begin{lstlisting}[caption={Arranque completo da infraestrutura (primeira execução: 2--3 min)},label={lst:docker}]
-cp .env.example .env          # criar ficheiro de secrets
-docker compose up --build     # iniciar todos os servicos
-curl http://localhost:8000/health
-# Resposta esperada: {"status":"ok"}
+\begin{lstlisting}[caption={Arranque completo da infraestrutura},label={lst:docker}]
+docker compose up --build
+curl http://localhost:8000/health  # {"status":"ok"}
 \end{lstlisting}
 
-\section{Autenticação OIDC e Validação JWT}
-\label{sec:autenticacao}
+\section{Fluxos de Autenticação e Autorização}
 
-\subsection{Fluxo de Autenticação}
+\subsection{Validação JWT (decisão técnica)}
 
-A autenticação é completamente delegada no Keycloak. A FastAPI actua como \textit{Resource Server}, nunca vendo as credenciais do utilizador. Para a demonstração usa-se o fluxo \gls{ropc} via \texttt{/auth/token}; o realm está também configurado com \textit{Authorization Code + PKCE} para fluxos \textit{browser} em produção.
+A validação é feita \textbf{localmente} na FastAPI com a chave pública RS256 obtida via \gls{jwks} e cacheada em memória. Verifica-se assinatura, \texttt{issuer}, \texttt{audience} e expiração. As \textit{claims} extraídas são: \texttt{sub}, \texttt{email}, \texttt{preferred\_username}, \texttt{realm\_access.roles} e \texttt{amr}.
 
-\subsection{Validação JWT RS256/JWKS}
-
-A validação é feita \textbf{localmente} na FastAPI, sem chamadas ao Keycloak em cada pedido:
-
-\begin{enumerate}
-  \item No primeiro pedido autenticado, a FastAPI descarrega a \gls{jwks} publicada pelo \textit{realm};
-  \item A chave pública RS256 é cacheada em memória (\texttt{\_jwks\_cache} em \texttt{app/auth.py});
-  \item Cada token é verificado localmente: assinatura criptográfica, \texttt{issuer}, \texttt{audience} e expiração;
-  \item As \textit{claims} relevantes são extraídas do \textit{payload} para autorização.
-\end{enumerate}
-
-\begin{lstlisting}[language=Python, caption={Validação JWT RS256 em app/auth.py},label={lst:jwt}]
-async def get_current_user(
-    token: str = Depends(oauth2_scheme)
-) -> dict:
-    jwks = await _get_jwks()       # cache em memoria
-    payload = jwt.decode(
-        token,
-        jwks,
-        algorithms=["RS256"],
-        audience=settings.oidc_client_id,
-        options={"verify_exp": True},
-    )
-    return payload                 # claims disponiveis nos handlers
+\begin{lstlisting}[language=Python, caption={Validação JWT em auth.py},label={lst:jwt}]
+payload = jwt.decode(
+    token, jwks,
+    algorithms=["RS256"],
+    audience=settings.oidc_client_id,
+    options={"verify_exp": True},
+)
 \end{lstlisting}
 
-\subsection{Claims Utilizadas pela Aplicação}
+\subsection{Autorização RBAC}
 
-\begin{table}[h!]
-\centering
-\caption{Claims JWT extraídas e utilizadas pela aplicação}
-\label{tab:claims}
-\begin{tabular}{|l|l|l|}
-\hline
-\textbf{Claim} & \textbf{Descrição} & \textbf{Uso} \\ \hline
-\texttt{sub} & UUID único do utilizador (Keycloak) & Auditoria, perfil \\ \hline
-\texttt{email} & Endereço de correio eletrónico & Exibição no perfil \\ \hline
-\texttt{preferred\_username} & Nome de utilizador de login & Identificação visual \\ \hline
-\texttt{realm\_access.roles} & Lista de papéis do \textit{realm} & Base do \gls{rbac} \\ \hline
-\texttt{amr} / \texttt{acr} & Método de autenticação (\gls{mfa}) & Verificação \gls{mfa} \\ \hline
-\texttt{exp} & \textit{Timestamp} de expiração & Validade do token \\ \hline
-\end{tabular}
-\end{table}
-
-\section{Autorização RBAC}
-\label{sec:autorizacao}
-
-\subsection{Modelo de Papéis e Grupos}
-
-Foram definidos três papéis de \textit{realm} no Keycloak, com grupos correspondentes que permitem atribuição automática de papéis via \textit{group membership}:
-
-\begin{itemize}
-  \item \textbf{\texttt{admin}} — Grupo \texttt{/Admins}: acesso total, incluindo \gls{jml}, auditoria e zona \gls{mfa}. \gls{mfa} \gls{totp} obrigatória;
-  \item \textbf{\texttt{colaborador}} — Grupo \texttt{/Colaboradores}: acesso a recursos e dados internos;
-  \item \textbf{\texttt{visitante}} — Grupo \texttt{/Visitantes}: acesso apenas a recursos públicos e perfil próprio.
-\end{itemize}
+Três papéis de \textit{realm} com grupos sincronizados: \texttt{admin} (\texttt{/Admins}), \texttt{colaborador} (\texttt{/Colaboradores}), \texttt{visitante} (\texttt{/Visitantes}). A Figura~\ref{fig:rbac} ilustra a matriz de acesso; a Tabela~\ref{tab:endpoints} detalha os resultados esperados.
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=0.95\textwidth]{matriz_rbac.png}
-  \caption{Matriz RBAC: mapeamento de endpoints para papéis com resultados esperados (200/403).}
+  \includegraphics[width=0.92\textwidth]{matriz_rbac.png}
+  \caption{Matriz RBAC: endpoints vs. papéis com resultados esperados (200 / 403).}
   \label{fig:rbac}
 \end{figure}
-
-\subsection{Implementação das Dependências de Autorização}
 
 \begin{table}[h!]
 \centering
@@ -133,161 +58,82 @@ Foram definidos três papéis de \textit{realm} no Keycloak, com grupos correspo
 \texttt{GET /me} & JWT válido & 200 & 200 & 200 \\ \hline
 \texttt{GET /colaborador/data} & colaborador\textbar{}admin & 200 & 200 & 403 \\ \hline
 \texttt{GET /admin/users} & admin & 200 & 403 & 403 \\ \hline
-\texttt{GET /admin/audit} & admin & 200 & 403 & 403 \\ \hline
 \texttt{GET /admin/mfa-area} & admin + \gls{mfa} & 200* & 403 & 403 \\ \hline
-\multicolumn{5}{l}{\footnotesize * apenas se o token incluir \texttt{amr=otp}} \\
+\multicolumn{5}{l}{\footnotesize * exige \texttt{amr=otp} no token} \\
 \end{tabular}
 \end{table}
 
-\begin{lstlisting}[language=Python, caption={Dependências require\_role() e require\_mfa() em auth.py},label={lst:rbac}]
-def require_role(*roles: str):
-    async def checker(user=Depends(get_current_user)):
-        user_roles = user.get("realm_access", {}).get("roles", [])
-        if not any(r in user_roles for r in roles):
-            raise HTTPException(status_code=403)
-        return user
-    return checker
+\section{MFA / TOTP (decisão técnica)}
 
-def require_mfa():
-    async def checker(user=Depends(get_current_user)):
-        amr = user.get("amr", [])
-        if not any(m in amr for m in ["otp", "mfa", "2fa"]):
-            raise HTTPException(status_code=403)
-        return user
-    return checker
-\end{lstlisting}
+O utilizador \texttt{admin.user} tem a \textit{Required Action} \texttt{CONFIGURE\_TOTP}: no primeiro acesso via \textit{browser}, o Keycloak obriga a configurar uma aplicação TOTP. Após configuração, o \gls{jwt} inclui \texttt{"amr":["otp"]}. O endpoint \texttt{/admin/mfa-area} valida este \textit{claim} com \texttt{require\_mfa()} independentemente do Keycloak — token sem \gls{otp} retorna 403.
 
-\section{Autenticação Multifator (MFA/TOTP)}
-\label{sec:mfa}
+\section{Implementação JML}
 
-A \gls{mfa} foi implementada com \gls{totp} \cite{RFC6238}, compatível com Google Authenticator, Microsoft Authenticator e Authy.
-
-\subsection{Configuração no Keycloak}
-
-\begin{enumerate}
-  \item O fluxo de autenticação \textit{browser} inclui a execução \texttt{auth-otp-form} (obrigatória para o papel \texttt{admin});
-  \item O utilizador \texttt{admin.user} tem a \textit{Required Action} \texttt{CONFIGURE\_TOTP} ativa;
-  \item No primeiro acesso via \textit{browser}, o Keycloak força a leitura do QR Code e a configuração da aplicação TOTP;
-  \item Após configuração, o \gls{jwt} passa a incluir \texttt{"amr": ["otp"]} como prova de segundo fator.
-\end{enumerate}
-
-\subsection{Validação na API}
-
-O endpoint \texttt{/admin/mfa-area} exige cumulativamente o papel \texttt{admin} e a \textit{claim} \texttt{amr=otp}. Um token de \texttt{admin.user} obtido via \gls{ropc} (sem \gls{mfa}) retorna \textbf{403}; um token obtido via \textit{browser flow} com \gls{totp} retorna \textbf{200}. Esta separação demonstra que a \gls{api} valida a prova de \gls{mfa} de forma independente do Keycloak.
-
-\section{Ciclo de Vida JML}
-\label{sec:jml}
+Os três fluxos actuam sobre a Keycloak Admin \gls{rest} \gls{api} (Figura~\ref{fig:jml}). A \textbf{decisão técnica} central é a revogação explícita de sessões (\texttt{DELETE /users/\{id\}/sessions}) no Mover e Leaver, garantindo efeito imediato sem aguardar a expiração do token (300 s por omissão).
 
 \begin{figure}[h!]
   \centering
-  \includegraphics[width=0.95\textwidth]{fluxo_jml.png}
+  \includegraphics[width=0.92\textwidth]{fluxo_jml.png}
   \caption{Fluxos JML: criação, transição de papel/grupo, desativação e revogação de sessões.}
   \label{fig:jml}
 \end{figure}
 
-Os três fluxos foram implementados sobre a Keycloak Admin \gls{rest} \gls{api}, garantindo que toda a gestão de identidades é centralizada no \gls{idp}. Cada fluxo está disponível como script \gls{cli} (\texttt{jml/joiner.py}, \texttt{mover.py}, \texttt{leaver.py}) e como endpoint \gls{rest} (\texttt{POST /admin/jml/\{joiner|mover|leaver\}}).
-
 \begin{table}[h!]
 \centering
-\caption{Fluxos JML: ações e efeito de segurança imediato}
+\caption{Fluxos JML: ações e efeito imediato}
 \label{tab:jml}
 \begin{tabularx}{\textwidth}{|l|X|l|}
 \hline
-\textbf{Fluxo} & \textbf{Ações} & \textbf{Efeito imediato} \\ \hline
-Joiner & Cria utilizador, atribui papel e grupo inicial & Acesso inicial controlado \\ \hline
-Mover & Troca papel/grupo, \textbf{revoga sessões ativas} & Novo acesso após reautenticação \\ \hline
-Leaver & Desativa conta (\texttt{enabled:false}), remove papéis, \textbf{revoga sessões} & Bloqueio imediato de acesso \\ \hline
+\textbf{Fluxo} & \textbf{Ações} & \textbf{Efeito} \\ \hline
+Joiner & Cria utilizador, atribui papel e grupo & Acesso inicial controlado \\ \hline
+Mover & Troca papel/grupo + \textbf{revoga sessões} & Reautenticação imediata \\ \hline
+Leaver & Desativa conta + remove papéis + \textbf{revoga sessões} & Bloqueio imediato \\ \hline
 \end{tabularx}
 \end{table}
 
-\subsection{Decisão Técnica: Revogação Explícita de Sessões}
+\section{Auditoria e Riscos}
 
-Sem revogação explícita, um utilizador movido ou desativado manteria o acesso durante o tempo de vida do \gls{jwt} (por omissão, 300 segundos). A chamada \texttt{DELETE /admin/realms/iam-tp/users/\{id\}/sessions} força a reautenticação imediata, eliminando esta janela de acesso indevido.
+O Keycloak regista eventos de utilizador (logins, falhas, logout, \gls{totp}) e eventos de administração (\gls{jml}) com persistência em PostgreSQL. O endpoint \texttt{GET /admin/audit} (papel \texttt{admin}) agrega ambos com filtragem por tipo.
 
-\begin{lstlisting}[language=Python, caption={Revogação de sessões no mover.py},label={lst:revoke}]
-# Após trocar papel e grupo:
-admin_token = get_admin_token()
-user_id = get_user_id(username, admin_token)
-revoke_url = f"{KEYCLOAK_URL}/admin/realms/{REALM}/users/{user_id}/sessions"
-httpx.delete(revoke_url, headers={"Authorization": f"Bearer {admin_token}"})
-\end{lstlisting}
+\textbf{Excerto de evento de login} (retornado pelo \texttt{/admin/audit}):
 
-\section{Auditoria de Eventos}
-\label{sec:auditoria}
-
-O Keycloak regista automaticamente dois tipos de eventos com persistência em PostgreSQL:
-
-\begin{itemize}
-  \item \textbf{Eventos de utilizador}: login, falha de login, logout, \textit{refresh} de token, configuração de \gls{totp} e falhas de \gls{otp};
-  \item \textbf{Eventos de administração}: criação/remoção de utilizadores, alteração de papéis e grupos, atualização de clientes.
-\end{itemize}
-
-O endpoint \texttt{GET /admin/audit} (protegido por papel \texttt{admin}) agrega ambos os tipos numa única resposta e suporta filtragem por tipo de evento.
-
-\subsection{Excerto de Evidência de Auditoria}
-
-A Listagem~\ref{lst:audit_evento} apresenta um excerto real de evento de login registado pelo Keycloak, tal como retornado pelo endpoint \texttt{/admin/audit}:
-
-\begin{lstlisting}[caption={Excerto de evento de auditoria — login bem-sucedido},label={lst:audit_evento}]
+\begin{lstlisting}[caption={Excerto de evento de auditoria — login bem-sucedido},label={lst:audit}]
 {
-  "id": "b3a7c1f2-8d4e-4a2b-9f1c-3e5d7a8b2c4d",
-  "time": 1748430600000,
   "type": "LOGIN",
-  "realmId": "iam-tp",
+  "time": 1748430600000,
   "clientId": "fastapi-client",
-  "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-  "sessionId": "c9d8e7f6-a5b4-3c2d-1e0f-9a8b7c6d5e4f",
+  "userId": "a1b2c3d4-...",
   "ipAddress": "172.18.0.1",
-  "details": {
-    "auth_method": "openid-connect",
-    "auth_type": "code",
-    "response_type": "code",
-    "redirect_uri": "http://localhost:8000/auth/callback",
-    "consent": "no_consent_required",
-    "code_id": "...",
-    "username": "colaborador.user",
-    "response_mode": "query"
-  }
+  "details": { "username": "colaborador.user" }
 }
 \end{lstlisting}
 
-E um excerto de evento administrativo \gls{jml} (criação de utilizador via Joiner):
+\textbf{Excerto de evento administrativo JML} (criação via Joiner):
 
-\begin{lstlisting}[caption={Excerto de evento de administração — criação de utilizador (Joiner)},label={lst:audit_admin}]
+\begin{lstlisting}[caption={Excerto de evento de administração — Joiner},label={lst:audit_admin}]
 {
-  "id": "f4e3d2c1-b0a9-8765-4321-fedcba987654",
-  "time": 1748431200000,
   "operationType": "CREATE",
   "resourceType": "USER",
-  "realmId": "iam-tp",
-  "representation": "{\"username\":\"demo.user\",\"enabled\":true}",
-  "resourcePath": "users/f1e2d3c4-a5b6-7890-abcd-ef0123456789",
-  "authDetails": {
-    "realmId": "iam-tp",
-    "clientId": "admin-cli",
-    "userId": "admin-service-account",
-    "ipAddress": "172.18.0.1"
-  }
+  "resourcePath": "users/f1e2d3c4-...",
+  "representation": "{\"username\":\"demo.user\",\"enabled\":true}"
 }
 \end{lstlisting}
 
-A evidência consultável completa está disponível no dashboard interativo (aba \textbf{Auditoria}), com filtragem por tipo de evento (\texttt{LOGIN}, \texttt{LOGIN\_ERROR}, \texttt{UPDATE\_TOTP}, etc.) e resumo estatístico por categoria.
-
-\section{Segurança Operacional}
+A Tabela~\ref{tab:riscos} mapeia os principais riscos e as mitigações implementadas.
 
 \begin{table}[h!]
 \centering
-\caption{Riscos identificados e mitigações implementadas}
+\caption{Riscos e mitigações}
 \label{tab:riscos}
 \rowcolors{2}{gray!15}{white}
 \begin{tabularx}{\textwidth}{|X|X|}
 \hline
 \textbf{Risco} & \textbf{Mitigação} \\ \hline
-Token inválido ou forjado & Validação RS256 via \gls{jwks}, verificação de \texttt{issuer} e \texttt{audience} \\ \hline
-Acesso indevido a recursos & \gls{rbac} no \textit{backend} com \texttt{require\_role()} por endpoint \\ \hline
-Administrador sem segundo fator & \gls{totp} obrigatório e validação de \texttt{amr} na \gls{api} \\ \hline
-Sessões ativas após mudança de papel & Revogação explícita (\texttt{DELETE /users/\{id\}/sessions}) no Mover e Leaver \\ \hline
-Credenciais expostas no código & Variáveis de ambiente via \texttt{.env} (não versionado) \\ \hline
-Falta de rastreabilidade & Eventos Keycloak (PostgreSQL) e endpoint \texttt{/admin/audit} protegido \\ \hline
+Token forjado & RS256 via \gls{jwks}, verificação de \texttt{issuer} e \texttt{audience} \\ \hline
+Acesso indevido & \gls{rbac} com \texttt{require\_role()} por endpoint \\ \hline
+Admin sem 2.º fator & \gls{totp} obrigatório + \texttt{require\_mfa()} na \gls{api} \\ \hline
+Sessões após mudança de papel & Revogação explícita no Mover e Leaver \\ \hline
+Credenciais expostas & Variáveis de ambiente via \texttt{.env} (não versionado) \\ \hline
+Falta de rastreabilidade & Eventos Keycloak + endpoint \texttt{/admin/audit} protegido \\ \hline
 \end{tabularx}
 \end{table}

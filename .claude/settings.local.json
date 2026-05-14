@@ -4,7 +4,10 @@
       "PowerShell(Get-ChildItem -Path \"c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM\" -Recurse -Force | Select-Object -Property FullName | ForEach-Object { $_.FullName.Replace\\('c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM', '.'\\) } | Sort-Object)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM\\\\Docs\" -Force)",
       "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM\\\\app\\\\static\\\\\" -File | Select-Object Name, FullName)",
-      "Bash(Get-ChildItem -Path 'c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM\\\\app\\\\static' -File)"
+      "Bash(Get-ChildItem -Path 'c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM\\\\app\\\\static' -File)",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import json; data=json.load\\(open\\('realm-export.json'\\)\\); users=[u for u in data.get\\('users',[]\\) if u.get\\('username'\\)=='admin.user']; print\\(json.dumps\\(users, indent=2\\)\\)\")",
+      "Bash(Remove-Item \"c:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM\\\\docs\\\\relatorio\\\\preparar_relatorio.ps1\")"
     ]
   }
 }
