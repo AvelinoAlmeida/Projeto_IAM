@@ -1,0 +1,32 @@
+%% ============================================================
+%%  Anexo B — Utilizadores de Teste
+%% ============================================================
+\chapter{Utilizadores de Teste}
+\label{anx:utilizadores}
+
+A Tabela~\ref{tab:users} lista os utilizadores pré-configurados no \textit{realm} \texttt{iam-tp} para demonstração.
+
+\begin{table}[h!]
+\centering
+\caption{Utilizadores de teste do realm \texttt{iam-tp}}
+\label{tab:users}
+\begin{tabular}{|l|l|l|l|}
+\hline
+\textbf{Username} & \textbf{Password} & \textbf{Papel} & \textbf{\gls{mfa}} \\ \hline
+\texttt{admin.user} & \texttt{Admin@1234} & admin & \gls{totp} obrigatório \\ \hline
+\texttt{colaborador.user} & \texttt{Colab@1234} & colaborador & Não configurado \\ \hline
+\texttt{visitante.user} & \texttt{Visit@1234} & visitante & Não configurado \\ \hline
+\end{tabular}
+\end{table}
+
+\textbf{Nota}: estas credenciais são ficcionais e destinam-se exclusivamente a demonstração em ambiente local. Nunca devem ser usadas em ambientes de produção ou em demonstrações com dados reais.
+
+Para criar utilizadores adicionais via \gls{cli}:
+
+\begin{lstlisting}[caption={Criar utilizador via script Joiner},label={lst:joiner_cli}]
+python jml/joiner.py \
+  --username novo.colaborador \
+  --email novo@empresa.pt \
+  --role colaborador \
+  --password "Senha@2026"
+\end{lstlisting}

@@ -1,0 +1,36 @@
+%% ============================================================
+%%  Capítulo 6 — Conclusão
+%% ============================================================
+\chapter{Conclusão}
+\label{chap:conclusao}
+
+\section{Síntese do Trabalho}
+
+Este projeto implementou com sucesso uma plataforma \gls{iam} completa que cobre todos os requisitos do trabalho prático da UC de Gestão de Identidade. A solução demonstra, de forma funcional e auditável, os cinco pilares do \gls{iam} definidos no enunciado: autenticação federada via \gls{oidc}/\gls{oauth2}, autorização \gls{rbac} com múltiplos perfis, \gls{mfa} \gls{totp} obrigatória, ciclo de vida \gls{jml} automatizado e auditoria de eventos persistente.
+
+A escolha do Keycloak como \gls{idp} \textit{open-source} permitiu implementar uma solução de qualidade de produção sem custos de licença, com total controlo sobre a configuração e a possibilidade de versionar o \textit{realm} em git.
+
+\section{Decisões Técnicas Relevantes}
+
+\begin{itemize}
+  \item \textbf{Validação local de \gls{jwt}} (cache \gls{jwks}) — elimina a dependência do Keycloak em cada pedido autenticado, reduzindo latência e aumentando a resiliência da aplicação face a falhas temporárias do \gls{idp};
+
+  \item \textbf{Revogação explícita de sessões} no Mover e Leaver — garante que alterações de acesso têm efeito imediato sem aguardar a expiração natural do token (300 segundos), resolvendo a limitação inerente à validação local de \gls{jwt};
+
+  \item \textbf{Exportação declarativa do \textit{realm}} em \texttt{realm-export.json} — torna o ambiente completamente reproduzível com um único comando, incluindo papéis, grupos, utilizadores, fluxos de \gls{mfa} e cliente \gls{oidc};
+
+  \item \textbf{JML via Admin \gls{rest} \gls{api}} — em vez de manipulação direta da base de dados, toda a gestão de identidades passa pelo \gls{idp}, garantindo consistência e rastreabilidade nos eventos de administração.
+\end{itemize}
+
+\section{Trabalho Futuro}
+
+Como trabalho futuro, identificam-se as seguintes melhorias possíveis:
+
+\begin{itemize}
+  \item Implementar o fluxo \textit{Authorization Code com PKCE} no dashboard (substituindo \gls{ropc}), alinhando com as melhores práticas de segurança \gls{oidc} para aplicações \textit{browser};
+  \item Adicionar \textit{social login} (Google, Microsoft) via federação de identidades no Keycloak, demonstrando o conceito de \gls{idp} federado;
+  \item Implementar rotação automática de chaves \gls{jwks} e invalidação da \textit{cache} no \textit{resource server};
+  \item Explorar \textit{passkeys} / FIDO2 como alternativa ao \gls{totp} para \gls{mfa} de nível AAL3;
+  \item Integrar os eventos de auditoria com um \gls{siem} (ex.: ELK Stack, Splunk) para correlação em tempo real e alertas automáticos;
+  \item Explorar Keycloak Authorization Services (\textit{policies} e \textit{permissions}) para \gls{rbac} mais granular com atributos.
+\end{itemize}

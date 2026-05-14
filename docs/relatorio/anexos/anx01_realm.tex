@@ -1,0 +1,38 @@
+%% ============================================================
+%%  Anexo A — Configuração do Realm Keycloak
+%% ============================================================
+\chapter{Configuração do Realm Keycloak}
+\label{anx:realm}
+
+O ficheiro \texttt{realm-export.json} contém a exportação completa do \textit{realm} \texttt{iam-tp}. Os elementos configurados incluem:
+
+\begin{itemize}
+  \item \textbf{Papéis de \textit{realm}}: \texttt{admin}, \texttt{colaborador}, \texttt{visitante};
+  \item \textbf{Grupos}: \texttt{/Admins}, \texttt{/Colaboradores}, \texttt{/Visitantes} com mapeamento automático de papéis via \textit{group role mappings};
+  \item \textbf{Cliente \gls{oidc}}: \texttt{fastapi-client} com \textit{Authorization Code + PKCE} e \textit{Direct Access Grants} (para testes), \textit{redirect URIs} restritas;
+  \item \textbf{Fluxo de autenticação \textit{browser}}: inclui execução \texttt{auth-otp-form} para \gls{mfa};
+  \item \textbf{Utilizadores de teste}: \texttt{admin.user}, \texttt{colaborador.user}, \texttt{visitante.user};
+  \item \textbf{Configuração de segurança}: RS256, \textit{access token} 300s, \textit{refresh token} 30min.
+\end{itemize}
+
+Para reimportar o \textit{realm} (ex.: após destruir os volumes Docker):
+
+\begin{lstlisting}[caption={Reimportação do realm via Docker Compose},label={lst:realm_import}]
+# Parar e apagar volumes (dados do Keycloak)
+docker compose down -v
+
+# Reiniciar -- o Keycloak importa automaticamente o realm-export.json
+docker compose up --build
+\end{lstlisting}
+
+Para exportar uma nova versão do \textit{realm} após alterações manuais no Keycloak Admin Console:
+
+\begin{lstlisting}[caption={Exportar realm atualizado},label={lst:realm_export}]
+docker compose exec keycloak \
+  /opt/keycloak/bin/kc.sh export \
+  --dir /tmp/export \
+  --realm iam-tp \
+  --users realm_file
+
+docker compose cp keycloak:/tmp/export/iam-tp-realm.json ./realm-export.json
+\end{lstlisting}
