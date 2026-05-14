@@ -1,9 +1,16 @@
+<<<<<<< HEAD
 %% Capítulo 5 — Validação e Resultados
+=======
+%% ============================================================
+%%  Capítulo 5 — Validação e Resultados
+%% ============================================================
+>>>>>>> df2eb5220b31d8e704cf4f670cff764b26edabce
 \chapter{Validação e Resultados}
 \label{chap:validacao}
 
 \section{Testes Unitários}
 
+<<<<<<< HEAD
 Quatro testes em \texttt{tests/test\_auth.py}, sem serviços em execução (JWKS simulado com par RSA temporário):
 
 \begin{lstlisting}[caption={Execução dos testes unitários},label={lst:pytest}]
@@ -31,10 +38,69 @@ O dashboard interativo (\texttt{http://localhost:8000/dashboard}, Figura~\ref{fi
 \begin{table}[h!]
 \centering
 \caption{Verificação de cumprimento dos requisitos do enunciado}
+=======
+Foram implementados quatro testes unitários em \texttt{tests/test\_auth.py} que validam a lógica central de autenticação e autorização \textbf{sem necessitar de serviços em execução}. Os testes geram um par de chaves RSA temporário para simular as chaves do Keycloak, usando \textit{mocking} de \texttt{\_get\_jwks()}.
+
+\begin{table}[h!]
+\centering
+\caption{Testes unitários implementados e cobertura}
+\label{tab:testes}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Teste} & \textbf{O que valida} \\ \hline
+\texttt{test\_require\_role\_allows\_admin} & \texttt{require\_role("admin")} aceita token com papel \texttt{admin} \\ \hline
+\texttt{test\_require\_role\_denies\_non\_admin} & Papel incorreto retorna HTTP~403 \\ \hline
+\texttt{test\_require\_mfa\_denies\_without\_otp} & Ausência de \texttt{amr=otp} retorna HTTP~403 \\ \hline
+\texttt{test\_get\_current\_user\_decodes\_rs256} & Validação de assinatura RS256, \textit{issuer} e \textit{audience} com \gls{jwks} simulado \\ \hline
+\end{tabularx}
+\end{table}
+
+\begin{lstlisting}[caption={Execução dos testes unitários},label={lst:pytest}]
+pip install -r requirements-dev.txt
+python -m pytest tests/ -v
+# Resultado esperado:
+# test_require_role_allows_admin       PASSED
+# test_require_role_denies_non_admin   PASSED
+# test_require_mfa_denies_without_otp  PASSED
+# test_get_current_user_decodes_rs256  PASSED
+# 4 passed in 0.XXs
+\end{lstlisting}
+
+\section{Validação Funcional via Dashboard}
+
+O dashboard interativo (\texttt{http://localhost:8000/dashboard}) permite validar visualmente todos os requisitos do enunciado sem necessitar de ferramentas externas. A Figura~\ref{fig:dashboard} mostra as abas disponíveis.
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.95\textwidth]{evidencias_dashboard.png}
+  \caption{Dashboard interativo: abas de autenticação, RBAC, JML, auditoria e arquitectura.}
+  \label{fig:dashboard}
+\end{figure}
+
+O dashboard inclui seis abas de demonstração:
+
+\begin{enumerate}
+  \item \textbf{Autenticação} — formulário de login, descodificador de \gls{jwt} com todas as \textit{claims}, \textit{countdown} de expiração;
+  \item \textbf{Autorização} — matriz \gls{rbac} com botão \textit{``Testar Todos os Endpoints''}, demonstra respostas 200/403 automaticamente para o utilizador autenticado;
+  \item \textbf{JML} — formulários Joiner, Mover e Leaver com chamadas à \gls{api} em tempo real;
+  \item \textbf{Auditoria} — lista de eventos filtráveis por tipo, resumo estatístico por categoria, eventos de administração;
+  \item \textbf{MFA} — demonstração do fluxo \gls{totp} e validação do endpoint \texttt{/admin/mfa-area};
+  \item \textbf{Arquitectura} — diagrama de componentes e mapeamento de portos.
+\end{enumerate}
+
+\section{Verificação de Requisitos do Enunciado}
+
+A Tabela~\ref{tab:requisitos} apresenta a verificação de cumprimento de cada requisito do enunciado.
+
+\begin{table}[h!]
+\centering
+\caption{Verificação de cumprimento dos requisitos do enunciado (Secção 3)}
+>>>>>>> df2eb5220b31d8e704cf4f670cff764b26edabce
 \label{tab:requisitos}
 \rowcolors{2}{gray!15}{white}
 \begin{tabularx}{\textwidth}{|X|c|}
 \hline
+<<<<<<< HEAD
 \textbf{Requisito (enunciado, Secção 3)} & \textbf{Estado} \\ \hline
 \textit{Realm} dedicado com 3+ perfis (\textit{realm roles} e \textit{groups}) & $\checkmark$ \\ \hline
 Login via Keycloak + validação de \textit{claims} (\texttt{sub}, \texttt{email}, \texttt{roles}) & $\checkmark$ \\ \hline
@@ -44,5 +110,47 @@ Joiner, Mover e Leaver com impacto imediato (revogação de sessões) & $\checkm
 Auditoria consultável com excerto incluído no relatório & $\checkmark$ \\ \hline
 \texttt{docker compose up} + \texttt{realm-export.json} reproduzível & $\checkmark$ \\ \hline
 Sem \textit{secrets} \textit{hardcoded}; organização de código clara & $\checkmark$ \\ \hline
+=======
+\textbf{Requisito} & \textbf{Estado} \\ \hline
+Realm dedicado ao TP (\texttt{iam-tp}) & $\checkmark$ \\ \hline
+Estrutura de utilizadores, grupos e papéis no Keycloak & $\checkmark$ \\ \hline
+Pelo menos 3 perfis como \textit{realm roles} e \textit{groups} & $\checkmark$ \\ \hline
+Login funcional via Keycloak (cliente OIDC \texttt{fastapi-client}) & $\checkmark$ \\ \hline
+Validação de sessão/token e \textit{claims} básicas (\texttt{sub}, \texttt{email}, \texttt{roles}) & $\checkmark$ \\ \hline
+Prova de controlo de acesso (200/403) por papel com evidência & $\checkmark$ \\ \hline
+\gls{mfa} \gls{totp} configurado no Keycloak + zona protegida exige \gls{mfa} & $\checkmark$ \\ \hline
+Evidência do fluxo de \textit{setup} e autenticação com \gls{otp} & $\checkmark$ \\ \hline
+Joiner: criação de utilizador + atribuição inicial de \textit{groups}/\textit{roles} & $\checkmark$ \\ \hline
+Mover: mudança de \textit{group}/\textit{role} com impacto imediato no acesso & $\checkmark$ \\ \hline
+Leaver: desativar utilizador, remover \textit{roles} e revogar sessões & $\checkmark$ \\ \hline
+Registo de eventos críticos (logins, erros, \gls{mfa}, \gls{jml}) & $\checkmark$ \\ \hline
+Evidência consultável com excerto incluído no relatório & $\checkmark$ \\ \hline
+\texttt{docker compose up} inicia Keycloak, PostgreSQL e aplicação & $\checkmark$ \\ \hline
+\texttt{realm-export.json} para reproduzir configuração & $\checkmark$ \\ \hline
+Execução reproduzível (README com passos) & $\checkmark$ \\ \hline
+Sem \textit{secrets} \textit{hardcoded} no código & $\checkmark$ \\ \hline
+Organização de código e configuração clara & $\checkmark$ \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Critérios de Avaliação}
+
+A Tabela~\ref{tab:avaliacao} mapeia os critérios de avaliação do enunciado à evidência disponível na solução.
+
+\begin{table}[h!]
+\centering
+\caption{Critérios de avaliação (0--20) e evidências correspondentes}
+\label{tab:avaliacao}
+\begin{tabularx}{\textwidth}{|X|c|X|}
+\hline
+\textbf{Critério} & \textbf{Peso} & \textbf{Evidência} \\ \hline
+Arquitetura e coerência técnica & 20\% & Docker Compose, \texttt{realm-export.json}, separação de serviços \\ \hline
+Autenticação / Federação & 15\% & \gls{oidc} via Keycloak, validação \gls{jwt} RS256/\gls{jwks}, dashboard \\ \hline
+Autorização & 15\% & \gls{rbac} 3 papéis, \texttt{require\_role()}, matriz 200/403 \\ \hline
+\gls{jml} & 15\% & Joiner, Mover, Leaver + revogação imediata de sessões \\ \hline
+\gls{mfa} & 15\% & \gls{totp} obrigatório, \texttt{require\_mfa()}, endpoint \texttt{/admin/mfa-area} \\ \hline
+Auditoria e segurança operacional & 10\% & Eventos Keycloak, \texttt{/admin/audit}, excerto no relatório \\ \hline
+Qualidade da demo e comunicação & 10\% & Dashboard, \texttt{DEMO.md}, guião 10 minutos \\ \hline
+>>>>>>> df2eb5220b31d8e704cf4f670cff764b26edabce
 \end{tabularx}
 \end{table}

@@ -1,8 +1,20 @@
+<<<<<<< HEAD
 %% Capítulo 3 — Trabalho Relacionado
 \chapter{Trabalho Relacionado}
 \label{chap:trabalho_relacionado}
 
 A Tabela~\ref{tab:comparacao_iam} compara as principais soluções \gls{iam} consideradas.
+=======
+%% ============================================================
+%%  Capítulo 3 — Trabalho Relacionado
+%% ============================================================
+\chapter{Trabalho Relacionado}
+\label{chap:trabalho_relacionado}
+
+\section{Soluções IAM no Mercado}
+
+Existem várias soluções \gls{iam} maduras disponíveis, que variam entre produtos \textit{Software as a Service} (SaaS) e projetos de código aberto auto-hospedados. A Tabela~\ref{tab:comparacao_iam} apresenta uma comparação das principais alternativas consideradas.
+>>>>>>> df2eb5220b31d8e704cf4f670cff764b26edabce
 
 \begin{table}[h!]
 \centering
@@ -11,6 +23,7 @@ A Tabela~\ref{tab:comparacao_iam} compara as principais soluções \gls{iam} con
 \begin{tabularx}{\textwidth}{|l|l|X|X|}
 \hline
 \textbf{Solução} & \textbf{Modelo} & \textbf{Pontos fortes} & \textbf{Limitações} \\ \hline
+<<<<<<< HEAD
 Auth0 & SaaS & Fácil integração, documentação extensa & Custo elevado, dependência de terceiro \\ \hline
 Azure AD B2C & Cloud & Integração Microsoft, escala empresarial & Configuração complexa, custo por login \\ \hline
 Okta & SaaS & UX excelente, \gls{mfa} avançada & Licenciamento por utilizador \\ \hline
@@ -21,3 +34,39 @@ Okta & SaaS & UX excelente, \gls{mfa} avançada & Licenciamento por utilizador \
 O \textbf{Keycloak~26} \cite{KeycloakDocs} foi escolhido por: custo zero; execução local via Docker; \texttt{realm-export.json} versionável; suporte nativo a \gls{mfa} \gls{totp}; Admin \gls{rest} \gls{api} para automação \gls{jml}; e revogação de sessões com efeito imediato via \texttt{DELETE /users/\{id\}/sessions}.
 
 Relativamente à validação de tokens, optou-se por \textbf{validação local via \gls{jwks}} (em vez de \textit{token introspection}) para eliminar latência e dependência de disponibilidade do \gls{idp} em cada pedido, compensando a limitação de revogação imediata através da revogação explícita de sessões nos fluxos \gls{jml}.
+=======
+Auth0 & SaaS & Fácil integração, documentação extensa, plano gratuito & Custo elevado em produção, dependência de terceiro, dados no exterior \\ \hline
+Azure AD B2C & Cloud & Integração nativa Microsoft, escala empresarial, conformidade & Complexidade de configuração, custo por autenticação \\ \hline
+Okta & SaaS & \gls{ux} excelente, ecossistema rico, \gls{mfa} avançada & Custo elevado, licenciamento por utilizador, \textit{vendor lock-in} \\ \hline
+Keycloak & Open Source & Gratuito, auto-hospedado, altamente configurável, \gls{api} Admin completa & Curva de aprendizagem, requer infraestrutura própria \\ \hline
+Gluu Server & Open Source & \gls{ldap}/AD nativo, FIDO2 & Interface complexa, comunidade menor \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Justificação da Escolha do Keycloak}
+
+O Keycloak \cite{KeycloakDocs} é um \gls{idp} de código aberto desenvolvido e mantido pela Red Hat, que implementa os protocolos \gls{oidc}, \gls{oauth2} e SAML~2.0. A versão~26 (utilizada neste projeto) introduz melhorias de desempenho e suporte a \textit{passkeys}.
+
+As razões que justificam a sua escolha para este trabalho são:
+
+\begin{enumerate}
+  \item \textbf{Custo zero} — sem licenciamento, adequado para um projeto académico;
+  \item \textbf{Auto-hospedado via Docker} — permite controlo total e execução local reproduzível;
+  \item \textbf{Exportação do realm} — \texttt{realm-export.json} versionado em git garante configuração declarativa;
+  \item \textbf{Suporte nativo a \gls{mfa} \gls{totp}} — configurável por utilizador via \textit{Required Actions};
+  \item \textbf{Admin \gls{rest} \gls{api} completa} — permite automação do ciclo de vida \gls{jml} de forma programática;
+  \item \textbf{Revogação de sessões} — suporte a \texttt{DELETE /users/\{id\}/sessions} para efeito imediato;
+  \item \textbf{Auditoria integrada} — registo de eventos de utilizador e de administração no PostgreSQL.
+\end{enumerate}
+
+\section{Abordagens de Validação de Tokens}
+
+Existem duas estratégias principais para validar \gls{jwt} num \textit{resource server}:
+
+\begin{itemize}
+  \item \textbf{Token Introspection} (RFC~7662): o \textit{resource server} chama o \gls{idp} em cada pedido para verificar a validade do token. Garante revogação imediata, mas introduz latência e dependência de disponibilidade;
+  \item \textbf{Validação local via JWKS}: o \textit{resource server} obtém as chaves públicas do \gls{idp} uma vez (e as cacheia) e verifica a assinatura criptográfica localmente. Elimina a latência extra, mas não deteta revogação até à expiração do token.
+\end{itemize}
+
+Neste projeto, adota-se a \textbf{validação local via \gls{jwks}} (\textit{cache} em memória), compensando a limitação de revogação com a estratégia de revogação explícita de sessões nos fluxos \gls{jml} (Mover e Leaver). Esta combinação oferece o melhor equilíbrio entre desempenho e segurança para o cenário implementado.
+>>>>>>> df2eb5220b31d8e704cf4f670cff764b26edabce
