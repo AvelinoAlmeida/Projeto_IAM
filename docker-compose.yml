@@ -24,7 +24,6 @@ services:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
       KC_HOSTNAME: localhost
-      KC_HOSTNAME_PORT: 8081
       KC_HOSTNAME_STRICT: false
       KC_HTTP_ENABLED: true
       KC_HEALTH_ENABLED: "true"
@@ -48,7 +47,7 @@ services:
       - "8000:8000"
     environment:
       KEYCLOAK_URL: http://keycloak:8080
-      KEYCLOAK_ISSUER_URL: http://localhost:8081
+      KEYCLOAK_ISSUER_URL: http://localhost:8080
       KEYCLOAK_REALM: iam-tp
       KEYCLOAK_CLIENT_ID: ${OIDC_CLIENT_ID}
       KEYCLOAK_CLIENT_SECRET: ${OIDC_CLIENT_SECRET}

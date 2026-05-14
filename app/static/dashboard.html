@@ -6,7 +6,6 @@
 <title>IAM TP — Gestão de Identidade</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="stylesheet" href="/static/dashboard.css">
-<link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
 
@@ -1245,6 +1244,8 @@ async function doLogin() {
     showResult(resultEl, '✅ Login efetuado com sucesso!', 'ok');
     document.getElementById('btn-logout').style.display = '';
     startExpiryCountdown();
+    renderEndpointsTable();
+    testAll();
   } catch (e) {
     showResult(resultEl, '❌ Erro de rede: ' + escapeHtml(e.message), 'err');
   } finally {
