@@ -1,0 +1,42 @@
+%% ============================================================
+%%  Capítulo 1 — Introdução
+%% ============================================================
+\chapter{Introdução}
+\label{chap:introducao}
+
+\section{Contexto e Motivação}
+
+A gestão de identidades e acessos (\gls{iam}) constitui um dos pilares fundamentais da segurança empresarial moderna. À medida que as organizações adotam arquiteturas distribuídas, serviços em nuvem e modelos de trabalho híbrido, a necessidade de um sistema centralizado que gira \textit{quem} pode aceder a \textit{quê}, \textit{quando} e \textit{como} torna-se crítica \cite{NIST80063B}.
+
+Sem um \gls{iam} robusto, as organizações ficam expostas a riscos como acesso não autorizado a recursos sensíveis, proliferação de credenciais não geridas, incapacidade de revogar acessos em tempo real e ausência de rastreabilidade de eventos de segurança. A adoção de um \gls{idp} centralizado, aliado a protocolos de autenticação padronizados (\gls{oidc}, \gls{oauth2}) e a políticas de autorização bem definidas (\gls{rbac}), mitiga estes riscos de forma sistemática.
+
+\section{Objetivos}
+
+Este trabalho prático da UC de Gestão de Identidade tem como objetivo consolidar os conceitos de identidade digital e ciclo de vida (\gls{jml}), autenticação e federação, autorização e controlo de acessos, \gls{mfa} e auditoria e segurança operacional \cite{Costa2026}.
+
+Os objetivos específicos são:
+
+\begin{enumerate}
+  \item Configurar um \gls{idp} centralizado com Keycloak~26, incluindo \textit{realm} dedicado, pelo menos 3 perfis como \textit{realm roles}/\textit{groups}, clientes \gls{oidc} e estrutura de utilizadores;
+  \item Implementar autenticação \gls{oidc}/\gls{oauth2} com validação local de \gls{jwt} RS256 via \gls{jwks} e obtenção de \textit{claims} básicas;
+  \item Aplicar controlo de acesso \gls{rbac} com prova de permitir/negar por papel em endpoints de uma \gls{api} \gls{rest};
+  \item Ativar e demonstrar \gls{mfa} \gls{totp} obrigatória, incluindo evidência do fluxo de configuração;
+  \item Implementar os três fluxos \gls{jml} via Keycloak Admin \gls{rest} \gls{api} com impacto imediato no acesso;
+  \item Registar e disponibilizar evidência consultável de eventos críticos de auditoria, incluindo um excerto no relatório;
+  \item Containerizar toda a infraestrutura com Docker Compose e fornecer \texttt{realm-export.json} para reprodutibilidade.
+\end{enumerate}
+
+\section{Caso de Uso}
+
+O cenário implementado simula uma \textbf{aplicação interna empresarial} com três perfis de utilizador: \textbf{visitante} (acesso a recursos públicos e perfil próprio), \textbf{colaborador} (acesso a dados e funcionalidades internas) e \textbf{administrador} (acesso total, incluindo gestão de utilizadores, auditoria e áreas protegidas por \gls{mfa}).
+
+\section{Estrutura do Relatório}
+
+Este relatório está organizado da seguinte forma:
+\begin{itemize}
+  \item Capítulo~\ref{chap:estado_arte} — Estado da Arte em \gls{iam} e protocolos relevantes;
+  \item Capítulo~\ref{chap:trabalho_relacionado} — Análise de soluções \gls{iam} alternativas;
+  \item Capítulo~\ref{chap:desenho} — Arquitetura e decisões técnicas de implementação;
+  \item Capítulo~\ref{chap:validacao} — Validação, testes e resultados obtidos;
+  \item Capítulo~\ref{chap:conclusao} — Conclusões e trabalho futuro.
+\end{itemize}

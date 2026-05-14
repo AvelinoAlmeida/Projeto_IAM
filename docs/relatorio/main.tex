@@ -1,0 +1,152 @@
+%% ============================================================
+%%  Relatório IAM TP — MEI, Gestão de Identidade — ESTG-IPP
+%%  2025/2026 — Avelino Almeida (8220800@estg.ipp.pt)
+%%  Formato: template ESTG-P.Porto (report class)
+%% ============================================================
+\documentclass[12pt,a4paper,twoside]{report}
+
+%% ---- Codificação e Língua ----
+\usepackage[utf8]{inputenc}
+\usepackage[portuguese]{babel}
+
+%% ---- Layout ----
+\usepackage[margin=2.5cm]{geometry}
+
+%% ---- Índices ----
+\usepackage[nottoc,numbib]{tocbibind}
+
+%% ---- PDF Capa ----
+\usepackage{pdfpages}
+
+%% ---- Parágrafo ----
+\usepackage{parskip}
+
+%% ---- URLs ----
+\usepackage{url}
+
+%% ---- Acrónimos ----
+\usepackage[acronym]{glossaries}
+\makeglossaries
+
+%% ---- Listagens de código ----
+\usepackage{listings}
+\renewcommand{\lstlistingname}{Listagem}
+\renewcommand*{\lstlistlistingname}{Lista de Listagens}
+\lstset{
+  xleftmargin  = 1cm,
+  basicstyle   = \footnotesize\ttfamily,
+  numbers      = left,
+  captionpos   = b,
+  columns      = fullflexible,
+  breaklines   = true,
+  frame        = single,
+  showstringspaces = false
+}
+
+%% ---- Gráficos e Figuras ----
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\graphicspath{{../imagens/}}
+
+%% ---- Tabelas ----
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage[table,xcdraw]{xcolor}
+\usepackage{longtable}
+
+%% ---- Hiperligações ----
+\usepackage[colorlinks=true, linkcolor=black, citecolor=black, urlcolor=blue]{hyperref}
+
+%% ---- Outros ----
+\usepackage{enumitem}
+
+%% ============================================================
+\begin{document}
+
+%% ---- CAPA (substituir pelo ficheiro oficial quando disponível) ----
+%% \includepdf[pages=1-2]{capas/capa.pdf}
+\input{capitulos/cap00_capa}
+
+\pagenumbering{roman}
+
+%% ---- ACRÓNIMOS ----
+\input{acronimos}
+
+%% ---- DECLARAÇÃO DE INTEGRIDADE ----
+\chapter*{Declaração de Integridade}
+\addcontentsline{toc}{chapter}{Declaração de Integridade}
+
+Eu, \textbf{Avelino Almeida}, estudante nº \textbf{8220800}, do Mestrado em \textbf{Engenharia Informática} da Escola Superior de Tecnologia e Gestão do Instituto Politécnico do Porto, declaro que não fiz plágio nem auto-plágio, pelo que o trabalho intitulado \textbf{``Plataforma de Gestão de Identidade e Acesso com Keycloak, FastAPI e Docker''} é original e da minha autoria, não tendo sido usado previamente para qualquer outro fim. Mais declaro que todas as fontes usadas estão citadas, no texto e na bibliografia final, segundo as regras de referenciação adotadas na instituição.
+
+\vspace{1.5cm}
+\noindent Porto, 28 de maio de 2026
+
+\vspace{1cm}
+\noindent\rule{7cm}{0.4pt}\\
+Avelino Almeida
+
+%% ---- AGRADECIMENTOS ----
+\chapter*{Agradecimentos}
+\addcontentsline{toc}{chapter}{Agradecimentos}
+
+Agradeço ao docente Ricardo Costa pela orientação e pelos materiais disponibilizados ao longo da unidade curricular de Gestão de Identidade, que permitiram aprofundar os conhecimentos teóricos e práticos em \gls{iam}.
+
+Agradeço igualmente à comunidade de código aberto do projeto Keycloak, cujas ferramentas e documentação tornaram possível a implementação de uma solução \gls{iam} completa e robusta sem custos de licença.
+
+%% ---- ABSTRACT ----
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+This report describes the design and implementation of a complete \textit{Identity and Access Management} (IAM) platform, developed as the practical assignment for the Identity Management course (MEI, ESTG-IPP, 2025/2026).
+
+The fully containerised solution combines \textbf{Keycloak~26} as the central Identity Provider (IdP), a \textbf{FastAPI} (Python~3.12) application as the protected resource server, and \textbf{PostgreSQL~16} as the persistence backend — all orchestrated by Docker Compose. The platform demonstrates: federated authentication via \gls{oidc}/\gls{oauth2} with \gls{jwt} RS256 validation, Role-Based Access Control (\gls{rbac}) with three hierarchical profiles, mandatory \gls{mfa}/\gls{totp} for administrators, the full Joiner–Mover–Leaver (\gls{jml}) identity lifecycle via the Keycloak Admin \gls{rest} \gls{api}, and comprehensive event auditing.
+
+The entire infrastructure is reproduced with a single \texttt{docker compose up --build} command. An interactive dashboard provides live evidence for all requirements.
+
+\textbf{Keywords:} Identity Management, Keycloak, OIDC, OAuth~2.0, JWT, RBAC, MFA, TOTP, JML, FastAPI, Docker.
+
+%% ---- RESUMO ----
+\chapter*{Resumo}
+\addcontentsline{toc}{chapter}{Resumo}
+
+Este relatório descreve a conceção e implementação de uma plataforma completa de Gestão de Identidade e Acesso (\gls{iam}), desenvolvida no âmbito do trabalho prático da unidade curricular de Gestão de Identidade (MEI, ESTG-IPP, 2025/2026).
+
+A solução containerizada combina o \textbf{Keycloak~26} como \gls{idp} central, uma \gls{api} \textbf{FastAPI} (Python~3.12) como servidor de recursos protegido e \textbf{PostgreSQL~16} como base de dados de suporte — todos orquestrados por Docker Compose. O projeto demonstra: autenticação federada via \gls{oidc}/\gls{oauth2} com validação de \gls{jwt} RS256, controlo de acesso baseado em papéis (\gls{rbac}) com três perfis hierárquicos, \gls{mfa}/\gls{totp} obrigatória para administradores, o ciclo de vida completo \gls{jml} via Keycloak Admin \gls{rest} \gls{api}, e auditoria completa de eventos.
+
+Toda a infraestrutura é reproduzida com um único comando (\texttt{docker compose up --build}) e um dashboard interativo fornece evidência em direto de todos os requisitos.
+
+\textbf{Palavras-chave:} Gestão de Identidade, Keycloak, OIDC, OAuth~2.0, JWT, RBAC, MFA, TOTP, JML, FastAPI, Docker.
+
+%% ---- ÍNDICES ----
+\tableofcontents
+\listoffigures
+\listoftables
+\addcontentsline{toc}{chapter}{Lista de Listagens}
+\lstlistoflistings
+\printglossary[type=\acronymtype, title=Acrónimos, nonumberlist]
+
+%% ============================================================
+%%  CAPÍTULOS
+%% ============================================================
+\pagenumbering{arabic}
+
+\input{capitulos/cap01_introducao}
+\input{capitulos/cap02_estado_arte}
+\input{capitulos/cap03_trabalho_relacionado}
+\input{capitulos/cap04_desenho}
+\input{capitulos/cap05_validacao}
+\input{capitulos/cap06_conclusao}
+
+%% ---- BIBLIOGRAFIA ----
+\bibliographystyle{ieeetr}
+\bibliography{refs}
+
+%% ---- ANEXOS ----
+\appendix
+\input{anexos/anx01_realm}
+\input{anexos/anx02_utilizadores}
+\input{anexos/anx03_demo}
+
+\end{document}
