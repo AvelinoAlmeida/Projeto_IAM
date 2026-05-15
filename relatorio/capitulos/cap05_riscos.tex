@@ -1,0 +1,169 @@
+%% ============================================================
+%%  Capítulo 5 — Riscos e Mitigações
+%% ============================================================
+\chapter{Riscos e Mitigações}
+\label{chap:riscos}
+
+\section{Identificação de Riscos}
+
+A análise de segurança operacional identificou vários riscos e implementou mitigações correspondentes.
+
+\subsection{Matriz de Riscos}
+
+\begin{table}[h!]
+\centering
+\caption{Riscos identificados e mitigações implementadas}
+\label{tab:riscos}
+\rowcolors{2}{gray!15}{white}
+\begin{tabularx}{\textwidth}{|X|X|}
+\hline
+\textbf{Risco} & \textbf{Mitigação} \\ \hline
+Token inválido ou forjado & Validação RS256 via \gls{jwks}, verificação de \texttt{issuer} e \texttt{audience} \\ \hline
+Acesso indevido a recursos & \gls{rbac} no \textit{backend} com \texttt{require\_role()} por endpoint \\ \hline
+Administrador sem segundo fator & \gls{totp} obrigatório e validação de \texttt{amr} na \gls{api} \\ \hline
+Sessões ativas após mudança de papel & Revogação explícita (\texttt{DELETE /users/\{id\}/sessions}) no Mover e Leaver \\ \hline
+Credenciais expostas no código & Variáveis de ambiente via \texttt{.env} (não versionado) \\ \hline
+Falta de rastreabilidade & Eventos Keycloak (PostgreSQL) e endpoint \texttt{/admin/audit} protegido \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Mitigações Implementadas}
+
+\subsection{1. Token Inválido ou Forjado}
+
+\textbf{Risco:} Um atacante consegue criar um token falso ou modificar um token legítimo e usá-lo para aceder a recursos protegidos.
+
+\textbf{Mitigação:}
+\begin{itemize}
+  \item Todos os tokens são validados com a chave pública RS256 do Keycloak
+  \item Verifica-se a assinatura HMAC-SHA256 contra a chave pública
+  \item Verifica-se que o \texttt{issuer} corresponde ao Keycloak esperado
+  \item Verifica-se que o \texttt{audience} é o cliente FastAPI
+  \item Verifica-se que o token não expirou
+\end{itemize}
+
+\subsection{2. Acesso Indevido a Recursos}
+
+\textbf{Risco:} Um utilizador consegue aceder a endpoints que não deveria, contornando o controlo de acesso.
+
+\textbf{Mitigação:}
+\begin{itemize}
+  \item Cada endpoint está protegido por um decorador \texttt{require\_role()} que valida o papel do utilizador
+  \item Visitantes não podem aceder a \texttt{/colaborador/*} ou \texttt{/admin/*}
+  \item Colaboradores não podem aceder a \texttt{/admin/*}
+  \item A validação ocorre na FastAPI, independentemente do Keycloak
+\end{itemize}
+
+\subsection{3. Administrador sem Segundo Fator}
+
+\textbf{Risco:} Um utilizador com papel de administrador consegue aceder a áreas críticas sem passar por validação de segundo fator, mesmo que tenha credenciais válidas.
+
+\textbf{Mitigação:}
+\begin{itemize}
+  \item A \textit{Required Action} \texttt{CONFIGURE\_TOTP} é ativa para administradores
+  \item No primeiro login, o Keycloak força a configuração de uma aplicação TOTP
+  \item Cada login de administrador requer inserir um código de 6 dígitos
+  \item O token inclui a \textit{claim} \texttt{amr: ["otp"]} apenas se \gls{mfa} bem-sucedido
+  \item A \gls{api} valida \texttt{amr} antes de permitir acesso a \texttt{/admin/mfa-area}
+\end{itemize}
+
+\subsection{4. Sessões Ativas após Mudança de Papel}
+
+\textbf{Risco:} Após um utilizador ser movido (papel alterado) ou desativado, as suas sessões antigas permanecem válidas durante o tempo de vida do token (300 segundos), permitindo acesso indevido.
+
+\textbf{Mitigação:}
+\begin{itemize}
+  \item No fluxo Mover, a \gls{api} revoga todas as sessões do utilizador após alterar papel/grupo
+  \item No fluxo Leaver, a \gls{api} revoga todas as sessões antes de desativar a conta
+  \item O utilizador é forçado a fazer reautenticação para obter um novo token
+  \item Não há janela de acesso indevido
+\end{itemize}
+
+\subsection{5. Credenciais Expostas no Código}
+
+\textbf{Risco:} Senhas, segredos de cliente e chaves privadas ficam expostos no repositório git ou são incluídas no código fonte.
+
+\textbf{Mitigação:}
+\begin{itemize}
+  \item Todas as credenciais são carregadas via variáveis de ambiente
+  \item O ficheiro \texttt{.env} contém os segredos e \textbf{não} é versionado (incluído em \texttt{.gitignore})
+  \item O repositório contém apenas \texttt{.env.example} como template
+  \item Não há \textit{hardcoding} de passwords no código Python
+  \item O \texttt{realm-export.json} contém hashes de passwords, não senhas em texto limpo
+\end{itemize}
+
+\subsection{6. Falta de Rastreabilidade}
+
+\textbf{Risco:} Não há registo de quem fez o quê, quando, impossibilitando a detecção de atividades suspeitas ou a investigação de incidentes.
+
+\textbf{Mitigação:}
+\begin{itemize}
+  \item Todos os logins (sucesso e falha) são registados no Keycloak
+  \item Todas as operações de administração (\gls{jml}) são registadas
+  \item Os eventos persistem na base de dados PostgreSQL
+  \item O endpoint \texttt{/admin/audit} permite consultar eventos com filtragem por tipo
+  \item O dashboard inclui uma aba de Auditoria com visualização e estatísticas
+\end{itemize}
+
+\section{Testes de Segurança}
+
+\subsection{Testes Unitários}
+
+Quatro testes automatizados validam a lógica de segurança:
+
+\begin{table}[h!]
+\centering
+\caption{Testes unitários de segurança}
+\label{tab:testes}
+\begin{tabularx}{\textwidth}{|l|X|}
+\hline
+\textbf{Teste} & \textbf{O que valida} \\ \hline
+\texttt{test\_require\_role\_allows\_admin} & \texttt{require\_role("admin")} aceita token com papel \texttt{admin} \\ \hline
+\texttt{test\_require\_role\_denies\_non\_admin} & Papel incorreto retorna HTTP~403 \\ \hline
+\texttt{test\_require\_mfa\_denies\_without\_otp} & Ausência de \texttt{amr=otp} retorna HTTP~403 \\ \hline
+\texttt{test\_get\_current\_user\_decodes\_rs256} & Validação de assinatura RS256, \texttt{issuer} e \texttt{audience} \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsection{Validação Funcional}
+
+O dashboard interativo permite validar visualmente todos os requisitos de segurança:
+\begin{itemize}
+  \item Aba Autenticação — login e decodificação de \gls{jwt}
+  \item Aba Autorização — matriz de endpoints com resultados 200/403
+  \item Aba JML — demonstração dos fluxos Joiner, Mover, Leaver
+  \item Aba Auditoria — consulta de eventos com filtragem
+  \item Aba MFA — fluxo de configuração e validação de \gls{totp}
+\end{itemize}
+
+\section{Considerações de Produção}
+
+\subsection{Limitações da Validação Local}
+
+A abordagem de validação local via cache \gls{jwks} tem uma limitação: se um token é revogado no Keycloak, a FastAPI não fica imediatamente ciente até que o token expire (300 segundos).
+
+Esta limitação é compensada por:
+\begin{itemize}
+  \item Revogação explícita de sessões no Mover e Leaver
+  \item Tempos de expiração curtos (5 minutos)
+  \item Atualização periódica das chaves \gls{jwks}
+\end{itemize}
+
+\subsection{Escalabilidade}
+
+A arquitetura é escalável:
+\begin{itemize}
+  \item Múltiplas instâncias da FastAPI podem validar tokens independentemente
+  \item O Keycloak é o ponto centralizado de gestão de identidades
+  \item A base de dados PostgreSQL é partilhada mas optimizada para auditoria
+\end{itemize}
+
+\subsection{Conformidade e Boas Práticas}
+
+A solução segue as recomendações do NIST:
+\begin{itemize}
+  \item \textbf{NIST SP 800-63B} — AAL2 com \gls{mfa} para acesso a dados sensíveis
+  \item \textbf{NIST SP 800-63C} — Federação de identidades via \gls{oidc}
+  \item Princípio do privilégio mínimo — cada papel tem permissões específicas
+  \item Princípio da defesa em profundidade — múltiplas camadas de validação
+\end{itemize}

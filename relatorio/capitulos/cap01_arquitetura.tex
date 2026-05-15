@@ -1,0 +1,85 @@
+%% ============================================================
+%%  Capítulo 1 — Arquitetura da Solução
+%% ============================================================
+\chapter{Arquitetura da Solução}
+\label{chap:arquitetura}
+
+\section{Padrão de Design}
+
+A solução segue o padrão \textbf{Resource Server + Identity Provider}, com três serviços orquestrados por Docker Compose. Toda a configuração é declarativa: \texttt{docker-compose.yml}, \texttt{realm-export.json} (versionado em git) e \texttt{.env} (segredos, não versionado).
+
+\subsection{Componentes}
+
+\begin{itemize}
+  \item \textbf{Keycloak 26} — Identity Provider centralizado (\gls{idp}) implementando \gls{oidc}, \gls{oauth2} e SAML 2.0;
+  \item \textbf{FastAPI (Python 3.12)} — Resource Server protegido com \gls{rbac} e \gls{mfa};
+  \item \textbf{PostgreSQL 16} — Base de dados persistente para Keycloak e auditoria de eventos.
+\end{itemize}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.92\textwidth]{arquitetura_iam.png}
+  \caption{Arquitetura: FastAPI (\textit{resource server}), Keycloak 26 (\gls{idp}) e PostgreSQL 16, sob Docker Compose.}
+  \label{fig:arquitetura}
+\end{figure}
+
+A Figura~\ref{fig:arquitetura} ilustra a arquitetura completa da solução. O \textbf{Keycloak 26} atua como \gls{idp} central: recebe as credenciais do utilizador, executa o fluxo de autenticação (\gls{oidc}/\gls{oauth2}) e emite um \gls{jwt} assinado com RS256. A \textbf{FastAPI} funciona como \textit{resource server}: valida o token localmente via \gls{jwks} cacheado, aplica o controlo de acesso (\gls{rbac}) e serve os recursos protegidos. O \textbf{PostgreSQL 16} é partilhado pelos dois serviços — armazena os dados de identidade e configuração do Keycloak, bem como os eventos de auditoria expostos pela \gls{api}. Os três serviços comunicam numa rede Docker interna e são orquestrados por um único \texttt{docker-compose.yml}, sem dependências externas.
+
+\subsection{Fluxo Principal}
+
+Cliente autentica no Keycloak $\rightarrow$ recebe \gls{jwt} RS256 $\rightarrow$ apresenta à FastAPI $\rightarrow$ validação local via \gls{jwks} cacheado $\rightarrow$ \gls{rbac} aplicado $\rightarrow$ resposta.
+
+\section{Iniciação da Infraestrutura}
+
+A solução é iniciada com um único comando:
+
+\begin{lstlisting}[caption={Arranque completo da infraestrutura},label={lst:docker}]
+docker compose up --build
+curl http://localhost:8000/health  # {"status":"ok"}
+\end{lstlisting}
+
+A infraestrutura fica pronta para uso imediato:
+\begin{itemize}
+  \item Keycloak disponível em \texttt{http://localhost:8080}
+  \item FastAPI disponível em \texttt{http://localhost:8000}
+  \item PostgreSQL acessível internamente
+\end{itemize}
+
+\section{Configuração Declarativa}
+
+\subsection{Realm Export}
+
+O ficheiro \texttt{realm-export.json} contém a configuração completa do Keycloak, incluindo:
+\begin{itemize}
+  \item Definição do \textit{realm} \texttt{iam-tp}
+  \item Utilizadores com credenciais hasheadas
+  \item Papéis de \textit{realm} e mapeamentos
+  \item Grupos organizacionais
+  \item Cliente OIDC \texttt{fastapi-client} com segredo
+  \item Fluxo de autenticação com \gls{mfa} obrigatório para adminsitradores
+\end{itemize}
+
+\subsection{Variáveis de Ambiente}
+
+O ficheiro \texttt{.env} (não versionado) contém:
+\begin{itemize}
+  \item \texttt{KEYCLOAK\_ADMIN} — utilizador administrador
+  \item \texttt{KEYCLOAK\_ADMIN\_PASSWORD} — palavra-passe do administrador
+  \item \texttt{POSTGRES\_PASSWORD} — palavra-passe da base de dados
+  \item \texttt{OIDC\_CLIENT\_SECRET} — segredo do cliente OIDC FastAPI
+\end{itemize}
+
+\section{Três Perfis de Utilizador}
+
+\begin{table}[h!]
+\centering
+\caption{Perfis de utilizador e papéis}
+\label{tab:perfis}
+\begin{tabularx}{\textwidth}{|l|l|X|}
+\hline
+\textbf{Papel} & \textbf{Grupo} & \textbf{Permissões} \\ \hline
+\texttt{admin} & \texttt{/Admins} & Acesso a \texttt{/admin/*}, auditoria, gestão de utilizadores, \gls{mfa} obrigatório \\ \hline
+\texttt{colaborador} & \texttt{/Colaboradores} & Acesso a \texttt{/colaborador/*}, dados internos, perfil pessoal \\ \hline
+\texttt{visitante} & \texttt{/Visitantes} & Acesso apenas a \texttt{/public}, sem dados sensíveis \\ \hline
+\end{tabularx}
+\end{table}

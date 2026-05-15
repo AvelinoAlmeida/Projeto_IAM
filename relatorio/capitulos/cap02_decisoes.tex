@@ -1,0 +1,138 @@
+%% ============================================================
+%%  Capítulo 2 — Decisões Técnicas
+%% ============================================================
+\chapter{Decisões Técnicas}
+\label{chap:decisoes}
+
+\section{Validação de JWT via JWKS Cacheado}
+
+\subsection{Abordagem Escolhida}
+
+A validação de tokens é feita \textbf{localmente} na FastAPI com a chave pública RS256 obtida via \gls{jwks} e cacheada em memória. Esta abordagem evita uma chamada ao Keycloak em cada requisição autenticada.
+
+\subsection{Implementação}
+
+A validação ocorre com os seguintes passos:
+
+\begin{lstlisting}[language=Python, caption={Validação JWT em auth.py},label={lst:jwt}]
+payload = jwt.decode(
+    token, jwks,
+    algorithms=["RS256"],
+    audience=settings.oidc_client_id,
+    options={"verify_exp": True},
+)
+\end{lstlisting}
+
+O processo verifica:
+\begin{itemize}
+  \item \textbf{Assinatura} — RS256 com chave pública cacheada
+  \item \textbf{\texttt{issuer}} — URL do Keycloak
+  \item \textbf{\texttt{audience}} — ID do cliente FastAPI
+  \item \textbf{Expiração} — \texttt{exp} claim com timestamp
+\end{itemize}
+
+As \textit{claims} extraídas são: \texttt{sub}, \texttt{email}, \texttt{preferred\_username}, \texttt{realm\_access.roles} e \texttt{amr}.
+
+\subsection{Vantagens e Desvantagens}
+
+\begin{table}[h!]
+\centering
+\caption{Comparação: Validação Local vs. Token Introspection}
+\label{tab:validacao}
+\begin{tabularx}{\textwidth}{|l|X|X|}
+\hline
+\textbf{Critério} & \textbf{Validação Local (Escolhida)} & \textbf{Token Introspection} \\ \hline
+Latência & Nenhuma (cache em memória) & Uma chamada HTTP ao Keycloak por requisição \\ \hline
+Resiliência & Alta (funciona se Keycloak cair) & Baixa (depende do Keycloak) \\ \hline
+Revogação Imediata & Não (janela de 300s) & Sim \\ \hline
+Cache & Sim (chaves públicas) & N/A \\ \hline
+Escalabilidade & Excelente & Limitada por Keycloak \\ \hline
+\end{tabularx}
+\end{table}
+
+A limitação de revogação imediata é compensada pela revogação explícita de sessões no Mover e Leaver (Secção~\ref{sec:jml}).
+
+\section{Controlo de Acesso Baseado em Papéis (RBAC)}
+
+\subsection{Estrutura}
+
+Três papéis de \textit{realm} com grupos sincronizados:
+\begin{itemize}
+  \item \texttt{admin} — grupo \texttt{/Admins}
+  \item \texttt{colaborador} — grupo \texttt{/Colaboradores}
+  \item \texttt{visitante} — grupo \texttt{/Visitantes}
+\end{itemize}
+
+\subsection{Implementação na API}
+
+Dois decoradores Fastapi implementam a autorização:
+
+\begin{lstlisting}[language=Python, caption={Dependências require\_role() e require\_mfa() em auth.py},label={lst:rbac}]
+def require_role(*roles: str):
+    async def checker(user=Depends(get_current_user)):
+        user_roles = user.get("realm_access", {}).get("roles", [])
+        if not any(r in user_roles for r in roles):
+            raise HTTPException(status_code=403)
+        return user
+    return checker
+
+def require_mfa():
+    async def checker(user=Depends(get_current_user)):
+        amr = user.get("amr", [])
+        if "otp" not in amr:
+            raise HTTPException(status_code=403)
+        return user
+    return checker
+\end{lstlisting}
+
+\subsection{Keycloak Authorization Services — Consideração e Alternativa}
+
+O Keycloak disponibiliza um módulo avançado de autorização denominado \textbf{Authorization Services}, que permite definir \textit{resources}, \textit{scopes}, \textit{policies} e \textit{permissions} diretamente no \gls{idp}, de forma centralizada e independente da aplicação.
+
+\begin{table}[h!]
+\centering
+\caption{Comparação: RBAC na API vs.\ Keycloak Authorization Services}
+\label{tab:authz}
+\begin{tabularx}{\textwidth}{|l|X|X|}
+\hline
+\textbf{Critério} & \textbf{RBAC na API (Escolhido)} & \textbf{Authorization Services} \\ \hline
+Complexidade & Baixa — dois decoradores & Alta — resources, scopes, policies \\ \hline
+Flexibilidade & Papéis fixos por endpoint & Políticas compostas (atributos, tempo, contexto) \\ \hline
+Centralização & Lógica na FastAPI & Lógica no Keycloak \\ \hline
+Adequação & Suficiente para 3 perfis simples & Indicado para ABAC ou multi-tenant \\ \hline
+Manutenção & Via código Python & Via Keycloak Admin Console \\ \hline
+\end{tabularx}
+\end{table}
+
+Para o âmbito deste projeto — três perfis hierárquicos com permissões fixas por endpoint — o \gls{rbac} implementado na FastAPI via \texttt{require\_role()} é suficiente e mais simples de auditar. O Keycloak Authorization Services foi configurado no \textit{realm} \texttt{iam-tp} ao nível do cliente \texttt{fastapi-client} (opção \textit{Authorization Enabled}), mas a lógica de decisão permanece na API, onde é testável com \textit{pytest}.
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.92\textwidth]{keycloak_authz.png}
+  \caption{Keycloak Authorization Services: configuração de \textit{resources} e \textit{policies} no cliente \texttt{fastapi-client}.}
+  \label{fig:authz}
+\end{figure}
+
+A Figura~\ref{fig:authz} apresenta a configuração do Keycloak Authorization Services no cliente \texttt{fastapi-client}. Na aba \textbf{Authorization} do Keycloak Admin Console é possível observar os \textit{resources} definidos (correspondentes aos endpoints protegidos da \gls{api}), os \textit{scopes} de acesso e as \textit{policies} baseadas em papéis de \textit{realm}. Esta configuração foi ativada através da opção \textit{Authorization Enabled} nas definições do cliente, tornando visível a estrutura de autorização centralizada no \gls{idp}. Conforme discutido na Tabela~\ref{tab:authz}, esta abordagem não substitui o \gls{rbac} implementado na FastAPI neste projeto, mas evidencia a capacidade do Keycloak para suportar cenários de autorização mais complexos sem alterações ao código da aplicação.
+
+\section{Realm Declarativo em JSON}
+
+O ficheiro \texttt{realm-export.json} define a configuração completa do Keycloak de forma versionável, permitindo:
+\begin{itemize}
+  \item Reprodução exata do ambiente em qualquer máquina
+  \item Controlo de versão em git
+  \item Facilidade de teste e integração contínua
+  \item Sem dependências de cliques na UI do Keycloak
+\end{itemize}
+
+\section{Fluxo de Autenticação com MFA Obrigatório}
+
+O Keycloak inclui um fluxo customizado que:
+\begin{enumerate}
+  \item Autentica por username/password
+  \item \textbf{Para o papel \texttt{admin}}, força \gls{otp} via TOTP
+  \item Gera um \gls{jwt} com \texttt{"amr": ["otp"]} se \gls{mfa} bem-sucedido
+  \item Permite acesso aos endpoints protegidos apenas com este \gls{jwt}
+\end{enumerate}
+
+Esta decisão garante que administradores não podem aceder a áreas críticas sem validação de segundo fator, mesmo que obtenham um token válido.

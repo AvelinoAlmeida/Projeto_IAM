@@ -1,0 +1,114 @@
+%% ============================================================
+%%  Capítulo 3 — Fluxos de Autenticação e Autorização
+%% ============================================================
+\chapter{Fluxos de Autenticação e Autorização}
+\label{chap:autenticacao}
+
+\section{OpenID Connect e OAuth 2.0}
+
+\subsection{Fundamentos}
+
+O \gls{oauth2} \cite{RFC6749} é uma \textit{framework} de autorização que permite que aplicações obtenham acesso limitado a contas de utilizadores, sem expor as credenciais. O \gls{oidc} \cite{OIDCCore} acrescenta uma camada de identidade sobre \gls{oauth2}, introduzindo o conceito de \textit{ID Token} e o \textit{UserInfo Endpoint}, que permitem que clientes verifiquem a identidade do utilizador.
+
+\subsection{Fluxos Utilizados}
+
+A solução utiliza dois fluxos \gls{oidc}:
+
+\begin{itemize}
+  \item \textbf{Authorization Code Flow} — utilizado quando o utilizador autentica manualmente via \textit{browser} no Keycloak, retornando um código que é trocado por tokens na backend;
+  
+  \item \textbf{Resource Owner Password Credentials (ROPC)} — utilizado apenas em testes e ambientes controlados; transmite credenciais diretamente ao servidor de autorização e retorna um token imediatamente.
+\end{itemize}
+
+\section{JSON Web Token (JWT) e Assinatura RS256}
+
+\subsection{Estrutura}
+
+O \gls{jwt} \cite{RFC7519} é um standard aberto que define um método compacto para transmitir informação entre partes como um objeto \gls{json} verificável. É composto por três partes codificadas em Base64URL:
+
+\begin{itemize}
+  \item \textbf{Header} — algoritmo de assinatura (\texttt{alg: RS256})
+  \item \textbf{Payload} — \textit{claims} (identidade, papéis, expiração)
+  \item \textbf{Signature} — assinatura com chave privada do Keycloak
+\end{itemize}
+
+\subsection{Algoritmo RS256}
+
+O algoritmo \textbf{RS256} utiliza criptografia assimétrica:
+\begin{itemize}
+  \item Keycloak assina o token com a sua chave privada
+  \item FastAPI valida com a chave pública obtida via \gls{jwks}
+  \item Não é necessário qualquer comunicação com o Keycloak para validar
+\end{itemize}
+
+\subsection{JWKS (JSON Web Key Set)}
+
+O \gls{jwks} \cite{RFC7517} é um \textit{endpoint} \gls{json} que publica o conjunto de chaves ativas do Keycloak. A FastAPI:
+\begin{enumerate}
+  \item Faz uma chamada inicial a \texttt{http://keycloak:8080/realms/iam-tp/protocol/openid-connect/certs}
+  \item Cacheia as chaves em memória
+  \item Atualiza periodicamente ou quando falha a validação
+\end{enumerate}
+
+\section{Fluxo de Autenticação na Prática}
+
+\subsection{Cenário 1: Utilizador Normal (Visitante/Colaborador)}
+
+\begin{enumerate}
+  \item Utilizador acede a \texttt{http://localhost:8000/auth/login}
+  \item FastAPI redireciona para Keycloak (\texttt{Authorization Code flow})
+  \item Utilizador insere credenciais
+  \item Keycloak retorna um código de autorização
+  \item FastAPI troca o código por um \gls{jwt} (backend)
+  \item Utilizador recebe o token e pode fazer requisições autenticadas
+\end{enumerate}
+
+\subsection{Cenário 2: Administrador com MFA}
+
+\begin{enumerate}
+  \item Administrador acede ao Keycloak
+  \item Autentica com username/password
+  \item Keycloak verifica que o papel é \texttt{admin} e força \gls{otp}
+  \item Administrador insere código de 6 dígitos da aplicação TOTP
+  \item Keycloak valida e gera \gls{jwt} com \texttt{"amr": ["otp"]}
+  \item Aplicação valida que \texttt{amr} inclui \texttt{otp} antes de permitir acesso a \texttt{/admin/*}
+\end{enumerate}
+
+\section{Matriz de Endpoints e Controlo de Acesso}
+
+\begin{table}[h!]
+\centering
+\caption{Endpoints: autenticação e autorização por papel}
+\label{tab:endpoints}
+\begin{tabular}{|l|l|c|c|c|}
+\hline
+\textbf{Endpoint} & \textbf{Proteção} & \textbf{admin} & \textbf{colab.} & \textbf{visit.} \\ \hline
+\texttt{GET /public} & Nenhuma & 200 & 200 & 200 \\ \hline
+\texttt{GET /me} & JWT válido & 200 & 200 & 200 \\ \hline
+\texttt{GET /colaborador/data} & colaborador\textbar{}admin & 200 & 200 & 403 \\ \hline
+\texttt{GET /admin/users} & admin & 200 & 403 & 403 \\ \hline
+\texttt{GET /admin/audit} & admin & 200 & 403 & 403 \\ \hline
+\texttt{GET /admin/mfa-area} & admin + \gls{mfa} & 200* & 403 & 403 \\ \hline
+\multicolumn{5}{l}{\footnotesize * apenas se o token incluir \texttt{amr=otp}} \\
+\end{tabular}
+\end{table}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.92\textwidth]{matriz_rbac.png}
+  \caption{Matriz RBAC: endpoints vs. papéis com resultados esperados (200 / 403).}
+  \label{fig:rbac}
+\end{figure}
+
+\section{Validação de Claims Básicas}
+
+Cada token é validado pela FastAPI com as seguintes \textit{claims}:
+
+\begin{itemize}
+  \item \textbf{\texttt{sub}} — identificador único do utilizador
+  \item \textbf{\texttt{email}} — endereço de correio eletrónico
+  \item \textbf{\texttt{preferred\_username}} — nome de utilizador legível
+  \item \textbf{\texttt{realm\_access.roles}} — lista de papéis de \textit{realm}
+  \item \textbf{\texttt{amr}} — métodos de autenticação (incluindo \texttt{otp} se MFA)
+  \item \textbf{\texttt{iat}} e \textbf{\texttt{exp}} — tempos de emissão e expiração
+\end{itemize}

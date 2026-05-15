@@ -1,0 +1,161 @@
+%% ============================================================
+%%  Capítulo 4 — Implementação de JML e MFA
+%% ============================================================
+\chapter{Implementação de JML e MFA}
+\label{chap:jml_mfa}
+
+\section{Ciclo de Vida JML}
+
+O ciclo de vida Joiner–Mover–Leaver (\gls{jml}) automatiza o provisionamento, a transição e a revogação de acessos.
+
+\subsection{Arquitetura}
+
+Os três fluxos são implementados sobre a Keycloak Admin \gls{rest} \gls{api}, garantindo que toda a gestão de identidades é centralizada no \gls{idp}. Cada fluxo está disponível como:
+\begin{itemize}
+  \item Script \gls{cli}: \texttt{jml/joiner.py}, \texttt{mover.py}, \texttt{leaver.py}
+  \item Endpoint \gls{rest}: \texttt{POST /admin/jml/\{joiner|mover|leaver\}}
+\end{itemize}
+
+\subsection{Os Três Fluxos}
+
+\begin{table}[h!]
+\centering
+\caption{Fluxos JML: ações e efeito de segurança imediato}
+\label{tab:jml}
+\begin{tabularx}{\textwidth}{|l|X|l|}
+\hline
+\textbf{Fluxo} & \textbf{Ações} & \textbf{Efeito imediato} \\ \hline
+Joiner & Cria utilizador, atribui papel e grupo inicial & Acesso inicial controlado \\ \hline
+Mover & Troca papel/grupo, \textbf{revoga sessões ativas} & Novo acesso após reautenticação \\ \hline
+Leaver & Desativa conta (\texttt{enabled:false}), remove papéis, \textbf{revoga sessões} & Bloqueio imediato de acesso \\ \hline
+\end{tabularx}
+\end{table}
+
+\begin{figure}[h!]
+  \centering
+  \includegraphics[width=0.95\textwidth]{fluxo_jml.png}
+  \caption{Fluxos JML: criação, transição de papel/grupo, desativação e revogação de sessões.}
+  \label{fig:jml}
+\end{figure}
+
+\subsection{Decisão Técnica: Revogação Explícita de Sessões}
+
+Sem revogação explícita, um utilizador movido ou desativado manteria o acesso durante o tempo de vida do \gls{jwt} (por omissão, 300 segundos). A chamada \texttt{DELETE /admin/realms/iam-tp/users/\{id\}/sessions} força a reautenticação imediata, eliminando esta janela de acesso indevido.
+
+\begin{lstlisting}[language=Python, caption={Revogação de sessões no mover.py},label={lst:revoke}]
+# Apos trocar papel e grupo:
+admin_token = get_admin_token()
+user_id = get_user_id(username, admin_token)
+revoke_url = f"{KEYCLOAK_URL}/admin/realms/{REALM}/users/{user_id}/sessions"
+httpx.delete(revoke_url, headers={"Authorization": f"Bearer {admin_token}"})
+\end{lstlisting}
+
+\section{Autenticação Multifator (MFA/TOTP)}
+
+\subsection{Configuração no Keycloak}
+
+A \gls{mfa} é implementada com as seguintes características:
+
+\begin{enumerate}
+  \item O fluxo de autenticação \textit{browser} inclui a execução \texttt{auth-otp-form} (obrigatória para o papel \texttt{admin});
+  
+  \item O utilizador \texttt{admin.user} tem a \textit{Required Action} \texttt{CONFIGURE\_TOTP} ativa;
+  
+  \item No primeiro acesso via \textit{browser}, o Keycloak força a leitura do \textit{QR Code} e a configuração da aplicação TOTP (Google Authenticator, Authy, etc.);
+  
+  \item Após configuração bem-sucedida, o \gls{jwt} passa a incluir \texttt{"amr": ["otp"]} como prova de segundo fator.
+\end{enumerate}
+
+\subsection{Validação na API}
+
+O endpoint \texttt{/admin/mfa-area} exige cumulativamente:
+\begin{itemize}
+  \item Papel \texttt{admin}
+  \item \textit{Claim} \texttt{amr=otp}
+\end{itemize}
+
+Esta separação demonstra que a \gls{api} valida a prova de \gls{mfa} de forma independente do Keycloak:
+\begin{itemize}
+  \item Um token obtido via \gls{ropc} (sem \gls{mfa}) retorna \textbf{403}
+  \item Um token obtido via \textit{browser flow} com \gls{totp} bem-sucedido retorna \textbf{200}
+\end{itemize}
+
+\subsection{Fluxo de TOTP}
+
+\begin{enumerate}
+  \item Utilizador faz login no Keycloak
+  \item Sistema deteta papel \texttt{admin} e requer \gls{otp}
+  \item Utilizador escaneia \textit{QR Code} com aplicação TOTP (primeira vez)
+  \item Utilizador insere código de 6 dígitos
+  \item Keycloak valida o código (período de 30 segundos)
+  \item Token é gerado com \texttt{amr: ["otp"]}
+\end{enumerate}
+
+\section{Auditoria de Eventos}
+
+\subsection{Tipos de Eventos Registados}
+
+O Keycloak regista automaticamente dois tipos de eventos com persistência em PostgreSQL:
+
+\begin{itemize}
+  \item \textbf{Eventos de utilizador}: login, falha de login, logout, \textit{refresh} de token, configuração de \gls{totp} e falhas de \gls{otp};
+  
+  \item \textbf{Eventos de administração}: criação/remoção de utilizadores, alteração de papéis e grupos, atualização de clientes.
+\end{itemize}
+
+\subsection{Acesso à Auditoria}
+
+O endpoint \texttt{GET /admin/audit} (protegido por papel \texttt{admin}) agrega ambos os tipos numa única resposta e suporta filtragem por tipo de evento.
+
+\subsection{Exemplos de Eventos}
+
+\subsubsection{Evento de Login bem-sucedido}
+
+\begin{lstlisting}[caption={Excerto de evento de auditoria — login bem-sucedido},label={lst:audit_evento}]
+{
+  "id": "b3a7c1f2-8d4e-4a2b-9f1c-3e5d7a8b2c4d",
+  "time": 1748430600000,
+  "type": "LOGIN",
+  "realmId": "iam-tp",
+  "clientId": "fastapi-client",
+  "userId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "sessionId": "c9d8e7f6-a5b4-3c2d-1e0f-9a8b7c6d5e4f",
+  "ipAddress": "172.18.0.1",
+  "details": {
+    "auth_method": "openid-connect",
+    "auth_type": "code",
+    "response_type": "code",
+    "redirect_uri": "http://localhost:8000/auth/callback",
+    "username": "colaborador.user"
+  }
+}
+\end{lstlisting}
+
+\subsubsection{Evento de Administração — Criação de Utilizador (Joiner)}
+
+\begin{lstlisting}[caption={Excerto de evento de administração — criação de utilizador (Joiner)},label={lst:audit_admin}]
+{
+  "id": "f4e3d2c1-b0a9-8765-4321-fedcba987654",
+  "time": 1748431200000,
+  "operationType": "CREATE",
+  "resourceType": "USER",
+  "realmId": "iam-tp",
+  "representation": "{\"username\":\"demo.user\",\"enabled\":true}",
+  "resourcePath": "users/f1e2d3c4-a5b6-7890-abcd-ef0123456789",
+  "authDetails": {
+    "realmId": "iam-tp",
+    "clientId": "admin-cli",
+    "userId": "admin-service-account",
+    "ipAddress": "172.18.0.1"
+  }
+}
+\end{lstlisting}
+
+\subsection{Evidência Consultável}
+
+A evidência consultável completa está disponível no dashboard interativo (aba \textbf{Auditoria}), com:
+\begin{itemize}
+  \item Filtragem por tipo de evento (\texttt{LOGIN}, \texttt{LOGIN\_ERROR}, \texttt{UPDATE\_TOTP}, etc.)
+  \item Resumo estatístico por categoria
+  \item Visualização de eventos de utilizador e administração
+\end{itemize}

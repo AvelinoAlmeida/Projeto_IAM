@@ -29,10 +29,12 @@
 \makeglossaries
 
 %% ---- Listagens de código ----
-\usepackage{listings}
+\usepackage{listingsutf8}
 \renewcommand{\lstlistingname}{Listagem}
 \renewcommand*{\lstlistlistingname}{Lista de Listagens}
 \lstset{
+  inputencoding = utf8,
+  extendedchars = true,
   xleftmargin  = 1cm,
   basicstyle   = \footnotesize\ttfamily,
   numbers      = left,
@@ -47,7 +49,7 @@
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{caption}
-\graphicspath{{../imagens/}}
+\graphicspath{{imagens/}}
 
 %% ---- Tabelas ----
 \usepackage{booktabs}
@@ -132,12 +134,11 @@ Toda a infraestrutura é reproduzida com um único comando (\texttt{docker compo
 %% ============================================================
 \pagenumbering{arabic}
 
-\input{capitulos/cap01_introducao}
-\input{capitulos/cap02_estado_arte}
-\input{capitulos/cap03_trabalho_relacionado}
-\input{capitulos/cap04_desenho}
-\input{capitulos/cap05_validacao}
-\input{capitulos/cap06_conclusao}
+\input{capitulos/cap01_arquitetura}
+\input{capitulos/cap02_decisoes}
+\input{capitulos/cap03_autenticacao}
+\input{capitulos/cap04_jml_mfa}
+\input{capitulos/cap05_riscos}
 
 %% ---- BIBLIOGRAFIA ----
 \bibliographystyle{ieeetr}
@@ -147,9 +148,5 @@ Toda a infraestrutura é reproduzida com um único comando (\texttt{docker compo
 \appendix
 \input{anexos/anx01_realm}
 \input{anexos/anx02_utilizadores}
-<<<<<<< HEAD
-=======
-\input{anexos/anx03_demo}
->>>>>>> df2eb5220b31d8e704cf4f670cff764b26edabce
 
 \end{document}
