@@ -78,22 +78,18 @@ async def login(body: LoginRequest):
     }
 
 
-_DEMO_USER = "admin.demo"
-_DEMO_PASS = "Demo@1234"
-
-
 @router.post("/auth/demo-admin-token", include_in_schema=False)
 async def demo_admin_token():
-    """Cria/garante utilizador admin.demo (sem OTP) e devolve token — apenas para demonstração."""
+    """Cria/garante utilizador demo (sem OTP) e devolve token — apenas para demonstração."""
     admin_tkn = await get_admin_token()
     async with httpx.AsyncClient() as client:
         headers = admin_headers(admin_tkn)
 
-        # Verificar se admin.demo já existe
+        # Verificar se o utilizador demo já existe
         r = await client.get(
             f"{settings.admin_api_url}/users",
             headers=headers,
-            params={"username": _DEMO_USER, "exact": "true"},
+            params={"username": settings.demo_admin_user, "exact": "true"},
         )
         r.raise_for_status()
         users = r.json()
@@ -104,14 +100,14 @@ async def demo_admin_token():
                 f"{settings.admin_api_url}/users",
                 headers=headers,
                 json={
-                    "username": _DEMO_USER,
-                    "email": "admin.demo@iam-tp.local",
+                    "username": settings.demo_admin_user,
+                    "email": f"{settings.demo_admin_user}@iam-tp.local",
                     "firstName": "Admin",
                     "lastName": "Demo",
                     "enabled": True,
                     "emailVerified": True,
                     "requiredActions": [],
-                    "credentials": [{"type": "password", "value": _DEMO_PASS, "temporary": False}],
+                    "credentials": [{"type": "password", "value": settings.demo_admin_pass, "temporary": False}],
                 },
             )
             if cr.status_code not in (200, 201):
@@ -120,7 +116,7 @@ async def demo_admin_token():
             r2 = await client.get(
                 f"{settings.admin_api_url}/users",
                 headers=headers,
-                params={"username": _DEMO_USER, "exact": "true"},
+                params={"username": settings.demo_admin_user, "exact": "true"},
             )
             r2.raise_for_status()
             user_id = r2.json()[0]["id"]
@@ -145,8 +141,8 @@ async def demo_admin_token():
                 "grant_type": "password",
                 "client_id": settings.keycloak_client_id,
                 "client_secret": settings.keycloak_client_secret,
-                "username": _DEMO_USER,
-                "password": _DEMO_PASS,
+                "username": settings.demo_admin_user,
+                "password": settings.demo_admin_pass,
                 "scope": "openid",
             },
         )

@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     keycloak_admin_password: str = ""
     keycloak_admin_realm: str = "master"
     keycloak_admin_client_id: str = "admin-cli"
+    demo_admin_user: str = "admin.demo"
+    demo_admin_pass: str = "Demo@1234"
 
     @property
     def oidc_config_url(self) -> str:
