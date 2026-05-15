@@ -1,7 +1,11 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -c ' *)"
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\Avelino\\\\Documents\\\\GitHub\\\\Projeto_IAM\" -Force)",
+      "Bash(Select-Object Name, FullName)",
+      "Bash(docker compose *)",
+      "Bash(curl -s -X POST http://localhost:8000/auth/demo-admin-token)",
+      "Bash(python3 -m json.tool)"
     ]
   }
 }

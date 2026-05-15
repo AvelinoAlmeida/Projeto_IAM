@@ -57,6 +57,23 @@ async def list_users(user: Annotated[dict, Depends(_require_admin)]):
         resp.raise_for_status()
         users = resp.json()
 
+        import asyncio
+
+        async def get_user_roles(uid: str) -> list[str]:
+            r = await client.get(
+                f"{settings.admin_api_url}/users/{uid}/role-mappings/realm",
+                headers=headers,
+            )
+            if not r.is_success:
+                return []
+            return [
+                ro["name"]
+                for ro in r.json()
+                if not ro.get("composite", False) and ro["name"] in ROLE_GROUP_MAP
+            ]
+
+        roles_list = await asyncio.gather(*[get_user_roles(u["id"]) for u in users])
+
     return {
         "total": len(users),
         "users": [
@@ -66,8 +83,9 @@ async def list_users(user: Annotated[dict, Depends(_require_admin)]):
                 "email": u.get("email"),
                 "enabled": u.get("enabled"),
                 "createdTimestamp": u.get("createdTimestamp"),
+                "roles": roles,
             }
-            for u in users
+            for u, roles in zip(users, roles_list)
         ],
     }
 
@@ -150,6 +168,10 @@ async def jml_joiner(
     token = await get_admin_token()
     headers = admin_headers(token)
 
+    parts = body.username.replace("-", ".").replace("_", ".").split(".")
+    first_name = parts[0].capitalize() if parts else body.username
+    last_name = parts[-1].capitalize() if len(parts) > 1 else ""
+
     async with httpx.AsyncClient() as client:
         create_resp = await client.post(
             f"{settings.admin_api_url}/users",
@@ -157,26 +179,54 @@ async def jml_joiner(
             json={
                 "username": body.username,
                 "email": body.email,
+                "firstName": first_name,
+                "lastName": last_name,
+                "emailVerified": True,
                 "enabled": True,
                 "credentials": [{"type": "password", "value": body.password, "temporary": False}],
                 "requiredActions": [],
             },
         )
         if create_resp.status_code not in (201, 204, 409):
-            create_resp.raise_for_status()
+            err = create_resp.json() if create_resp.headers.get("content-type", "").startswith("application/json") else {}
+            raise HTTPException(
+                status_code=400,
+                detail=err.get("errorMessage") or err.get("error_description") or err.get("error") or f"Keycloak recusou o utilizador (HTTP {create_resp.status_code})",
+            )
 
         user_id = await get_user_id(client, headers, body.username)
         if create_resp.status_code == 409:
             await client.put(
                 f"{settings.admin_api_url}/users/{user_id}",
                 headers=headers,
-                json={"email": body.email, "enabled": True, "emailVerified": True, "requiredActions": []},
+                json={"email": body.email, "firstName": first_name, "lastName": last_name, "enabled": True, "emailVerified": True, "requiredActions": []},
             )
             await client.put(
                 f"{settings.admin_api_url}/users/{user_id}/reset-password",
                 headers=headers,
                 json={"type": "password", "value": body.password, "temporary": False},
             )
+        # Remove existing realm roles before assigning the new one
+        existing_resp = await client.get(
+            f"{settings.admin_api_url}/users/{user_id}/role-mappings/realm",
+            headers=headers,
+        )
+        if existing_resp.is_success:
+            existing_roles = [r for r in existing_resp.json() if not r.get("composite", False) and r["name"] in ROLE_GROUP_MAP]
+            if existing_roles:
+                await client.request(
+                    "DELETE",
+                    f"{settings.admin_api_url}/users/{user_id}/role-mappings/realm",
+                    headers=headers,
+                    json=existing_roles,
+                )
+                for old_r in existing_roles:
+                    old_gid = await get_group_id(client, headers, ROLE_GROUP_MAP[old_r["name"]])
+                    await client.delete(
+                        f"{settings.admin_api_url}/users/{user_id}/groups/{old_gid}",
+                        headers=headers,
+                    )
+
         role = await get_role(client, headers, body.role)
         group_id = await get_group_id(client, headers, ROLE_GROUP_MAP[body.role])
 

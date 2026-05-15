@@ -120,14 +120,25 @@ async def demo_admin_token():
             )
             r2.raise_for_status()
             user_id = r2.json()[0]["id"]
+        else:
+            user_id = users[0]["id"]
 
-            role = await get_role(client, headers, "admin")
+        # Garantir role admin (idempotente — não falha se já atribuído)
+        role = await get_role(client, headers, "admin")
+        assigned = await client.get(
+            f"{settings.admin_api_url}/users/{user_id}/role-mappings/realm",
+            headers=headers,
+        )
+        assigned_names = {r["name"] for r in assigned.json()} if assigned.is_success else set()
+        if "admin" not in assigned_names:
             await client.post(
                 f"{settings.admin_api_url}/users/{user_id}/role-mappings/realm",
                 headers=headers,
                 json=[role],
             )
 
+        # Garantir grupo Admins (idempotente)
+        if not users:
             group_id = await get_group_id(client, headers, "Admins")
             await client.put(
                 f"{settings.admin_api_url}/users/{user_id}/groups/{group_id}",

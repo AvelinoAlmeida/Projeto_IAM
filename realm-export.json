@@ -86,9 +86,7 @@
       "groups": [
         "/Admins"
       ],
-      "requiredActions": [
-        "CONFIGURE_TOTP"
-      ],
+      "requiredActions": [],
       "credentials": [
         {
           "type": "password",

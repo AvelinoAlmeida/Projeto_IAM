@@ -4,146 +4,80 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Identity and Access Management (IAM) practical assignment (TP) for MEI-ESTG-IPP. Three-service architecture:
-- **Keycloak 26** — OIDC/OAuth2 identity provider, auto-imports realm from `realm-export.json`
-- **PostgreSQL 16** — Keycloak's database backend
-- **FastAPI** — Protected REST API validating Keycloak-issued JWTs (RS256) and enforcing RBAC
+IAM TP — an Identity and Access Management platform demonstrating OIDC/OAuth2, RBAC, MFA/TOTP, audit logging, and JML (Joiner-Mover-Leaver) user lifecycle management. Stack: Keycloak 26, PostgreSQL 16, FastAPI (Python 3.12).
 
-## Development Commands
+## Running the Application
+
+The full stack runs via Docker Compose (requires a `.env` file — copy `.env.example` as a starting point):
 
 ```bash
-# Start all services (first-time or after code changes)
 docker compose up --build
-
-# Start without rebuilding images
-docker compose up
 ```
 
-> **First startup takes 2–3 minutes.** Keycloak has a 90-second `start_period` before health checks begin; the FastAPI container waits for Keycloak to be healthy before it accepts connections.
+Services after startup (~2–3 min for Keycloak):
+- FastAPI + Swagger UI: http://localhost:8000/docs
+- Dashboard UI: http://localhost:8000/dashboard
+- Keycloak Admin Console: http://localhost:8081
 
-Services after startup:
-- Keycloak admin console: `http://localhost:8081`
-- FastAPI + Swagger UI: `http://localhost:8000/docs`
-- Interactive dashboard: `http://localhost:8000/dashboard`
+To run FastAPI locally (without Docker), install deps and start uvicorn:
 
-### Run Tests
+```bash
+pip install -r app/requirements.txt
+cd app && uvicorn main:app --reload
+```
+
+## Running Tests
+
+Tests do not require live services — they mock JWKS with RSA key generation:
 
 ```bash
 pip install -r tests/requirements.txt
-python -m pytest tests/
-# Single test
-python -m pytest tests/test_auth.py::test_require_role_allows_admin
+python -m pytest tests/ -v
 ```
 
-Tests in `tests/test_auth.py` cover JWT validation (using a generated RSA key pair), `require_role()`, and `require_mfa()`. No running services needed — JWKS fetching is mocked by patching `auth._get_jwks` with `unittest.mock.patch.object`.
-
-`tests/requirements.txt` includes `pytest` and pulls `app/requirements.txt` via `-r ../app/requirements.txt`, so a single install command is sufficient.
-
-### JML Scripts (run locally with Python 3.12+)
-
-Python 3.12 is the minimum tested version. `jml/requirements.txt` does not pin the interpreter — ensure your local `python` resolves to 3.12+ before running.
-
-```bash
-cd jml
-pip install -r requirements.txt
-
-python joiner.py --username alice --email alice@empresa.pt --role colaborador
-python mover.py --username alice --old-role colaborador --new-role admin
-python leaver.py --username alice
-```
-
-Valid roles: `admin`, `colaborador`, `visitante`.
-
-`jml/_keycloak_client.py` defaults to `KEYCLOAK_URL=http://localhost:8080`, but Keycloak is mapped to port `8081` externally. Set `KEYCLOAK_URL=http://localhost:8081` in your environment or in a `jml/.env` file when running the scripts locally against the Docker stack.
-
-### Get a Bearer Token for Manual Testing
-
-```bash
-TOKEN=$(curl -s -X POST http://localhost:8081/realms/iam-tp/protocol/openid-connect/token \
-  -d "grant_type=password" -d "client_id=fastapi-client" \
-  -d "client_secret=<OIDC_CLIENT_SECRET>" \
-  -d "username=colaborador.user" -d "password=Colab@1234" \
-  | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
-```
-
-Test users: `admin.user`/`Admin@1234` (MFA required), `colaborador.user`/`Colab@1234`, `visitante.user`/`Visit@1234`.
-
-### Re-export Realm After Manual Keycloak Changes
-
-```bash
-docker exec -it <keycloak-container-id> \
-  /opt/keycloak/bin/kc.sh export --realm iam-tp --file /tmp/realm-export.json
-docker cp <keycloak-container-id>:/tmp/realm-export.json ./realm-export.json
-```
+Expected: 4 tests passing in `tests/test_auth.py`.
 
 ## Architecture
 
-### Authentication Flow
+### Request Flow
 
-1. Client authenticates against Keycloak (`localhost:8081/realms/iam-tp`)
-2. Keycloak returns JWT signed with RS256; roles are embedded in `realm_access.roles`
-3. FastAPI fetches JWKS from Keycloak's OIDC discovery endpoint at startup (cached in memory)
-4. `app/auth.py` validates signature, issuer, and audience, then extracts roles
-5. `require_role()` or `require_mfa()` dependencies enforce per-endpoint access requirements
-
-### JWKS Caching
-
-`_jwks_cache` in `app/auth.py` is a module-level dict populated on the first token validation and never invalidated. If Keycloak is restarted (e.g., keys rotate), the FastAPI container must also be restarted to refresh the cache — `docker compose restart app` is sufficient.
-
-### FastAPI Route Structure
-
-| Endpoint(s) | File | Required Role |
-| --- | --- | --- |
-| `/health`, `/public`, `/dashboard`, `/auth/token` | `routes/public.py` | None |
-| `/me` | `routes/public.py` | Any valid token |
-| `/colaborador/data`, `/colaborador/perfil` | `routes/colaborador.py` | `colaborador` or `admin` |
-| `/admin/users`, `/admin/audit`, `/admin/audit/summary` | `routes/admin.py` | `admin` |
-| `/admin/mfa-area` | `routes/admin.py` | `admin` + MFA proven |
-| `/admin/jml/joiner`, `/admin/jml/mover`, `/admin/jml/leaver` | `routes/admin.py` | `admin` |
-
-`/admin/*` endpoints proxy calls to the Keycloak Admin REST API using a per-request service account token. The `/admin/jml/*` endpoints are API equivalents of the CLI scripts in `jml/`.
-
-`/auth/token` uses the Resource Owner Password Credentials grant (for testing convenience). The Keycloak client also supports Authorization Code + PKCE for browser-based flows.
-
-### MFA Enforcement
-
-`require_mfa()` in `app/auth.py` checks the JWT's `amr` claim (Authentication Methods Reference) for any of: `otp`, `2fa`, `mfa`, `google_authenticator`, or detects `password` + OTP combination. It also checks `acr`. If MFA is not proven, it raises HTTP 403. `admin.user` has `CONFIGURE_TOTP` as a required action in `realm-export.json`, so the Keycloak browser flow forces TOTP enrollment.
-
-### Role-to-Group Mapping
-
-Keycloak groups mirror roles: `admin` → `/Admins`, `colaborador` → `/Colaboradores`, `visitante` → `/Visitantes`. Groups have automatic role assignments; the JML scripts manage both role mappings and group memberships atomically.
-
-This mapping is duplicated in three places — `ROLE_GROUP_MAP` in `app/routes/admin.py` and `ROLE_TO_GROUP` in `jml/joiner.py` and `jml/mover.py`. Adding a new role requires updating all three, plus adding the group and role in `realm-export.json`.
-
-### Key Files
-
-- `app/main.py` — FastAPI app entry point; registers all routers and configures CORS middleware (allowed origins: `http://localhost:8000`, `http://localhost:8080`, `http://localhost:8081`, and `null` — update here if testing from other origins)
-- `app/config.py` — Pydantic Settings; derives all Keycloak URLs (JWKS, issuer, admin API, token) from base URL + realm name
-- `app/auth.py` — JWT validation (`python-jose`), `require_role()`, and `require_mfa()` FastAPI dependencies
-- `app/keycloak_client.py` — Async Admin API helpers used by FastAPI routes (`get_admin_token`, `get_user_id`, `get_role`, `get_group_id`). Obtains a service account token from the **master realm** using `KEYCLOAK_ADMIN`/`KEYCLOAK_ADMIN_PASSWORD`; then operates on the `iam-tp` realm. Uses `http://keycloak:8080` (Docker-internal hostname); cannot be called from outside the Docker network.
-- `jml/_keycloak_client.py` — Synchronous equivalents for the CLI scripts. Defaults to `http://localhost:8080` (overridable via `KEYCLOAK_URL`). Do not run inside the Docker network without setting `KEYCLOAK_URL=http://keycloak:8080`.
-- `app/static/` — Dashboard SPA (`dashboard.html` + `dashboard.css`) and SVG report diagrams (`report-assets/`) for demonstrating auth, RBAC, JML, and audit features
-- `realm-export.json` — Versioned Keycloak realm snapshot; auto-imported on container start
-- `app/Dockerfile` — Starts uvicorn with `--reload`; Python file changes inside the container are picked up without a restart (useful when bind-mounting `app/` during development)
-
-### Environment Variables
-
-Create a `.env` file at the project root before first run. Required variables:
-
-```ini
-KEYCLOAK_ADMIN=admin
-KEYCLOAK_ADMIN_PASSWORD=<password>
-DB_PASSWORD=<password>
-OIDC_CLIENT_ID=fastapi-client
-OIDC_CLIENT_SECRET=<secret>   # Must match "secret" for fastapi-client in realm-export.json
+```
+Client → FastAPI (:8000) → Keycloak (:8080) → PostgreSQL (:5432)
 ```
 
-`docker-compose.yml` maps `OIDC_CLIENT_ID` → `KEYCLOAK_CLIENT_ID` and `OIDC_CLIENT_SECRET` → `KEYCLOAK_CLIENT_SECRET` before passing them to the FastAPI container. The FastAPI `config.py` reads the `KEYCLOAK_*` names.
+JWT tokens are issued by Keycloak (RS256), validated by FastAPI via cached JWKS. Roles are embedded in `realm_access.roles` claim.
 
-### Session Revocation
+### FastAPI App (`app/`)
 
-`mover.py` and `leaver.py` (and their API equivalents) explicitly revoke all active Keycloak sessions after role/status changes, so permission changes take effect immediately without waiting for token expiry.
+- **`main.py`** — app setup, CORS, static files, router mounting
+- **`config.py`** — all configuration via `pydantic-settings` (loaded from `.env`)
+- **`auth.py`** — JWT validation, JWKS caching, `require_role()` and `require_mfa()` FastAPI dependencies
+- **`routes/public.py`** — open endpoints: `/health`, `/auth/token`, `/auth/demo-admin-token`, `/me`, `/dashboard`
+- **`routes/colaborador.py`** — endpoints requiring `colaborador` or `admin` role
+- **`routes/admin.py`** — endpoints requiring `admin` role; includes audit log, user management, MFA-area, and JML REST endpoints
 
-### Async vs. Sync HTTP Clients
+### Authentication & RBAC
 
-FastAPI routes use `httpx.AsyncClient` (non-blocking, suited for an async event loop); JML CLI scripts use the synchronous `httpx` client (simpler for one-shot command-line tools). Both call the same Keycloak Admin REST API endpoints.
+`require_role(*roles)` and `require_mfa()` in `auth.py` are FastAPI dependency functions applied per route. MFA is verified by checking for `"otp"`, `"mfa"`, or `"2fa"` in the token's `acr` or `amr` claims.
+
+### JML Lifecycle (`jml/`)
+
+Can be run as standalone CLI scripts or triggered via REST endpoints under `/admin/jml/*`:
+- **`joiner.py`** — creates a user, assigns role, adds to group
+- **`mover.py`** — changes role, revokes sessions, updates group membership
+- **`leaver.py`** — disables account, removes roles, revokes sessions
+- **`_keycloak_client.py`** — synchronous Keycloak Admin REST API client used by the scripts
+
+### Keycloak Realm
+
+`realm-export.json` is auto-imported on container startup. Realm: `iam-tp`. Predefined users: `admin.user`, `colaborador.user`, `visitante.user`. Roles: `admin`, `colaborador`, `visitante`. Admin users require TOTP.
+
+## Key Environment Variables
+
+| Variable | Purpose |
+|---|---|
+| `KEYCLOAK_ADMIN` / `KEYCLOAK_ADMIN_PASSWORD` | Keycloak admin credentials |
+| `OIDC_CLIENT_ID` / `OIDC_CLIENT_SECRET` | FastAPI client credentials in Keycloak |
+| `DEMO_ADMIN_USER` / `DEMO_ADMIN_PASS` | Demo admin account for `/auth/demo-admin-token` |
+| `DB_PASSWORD` | PostgreSQL password |
+| `KEYCLOAK_ISSUER_URL` | External Keycloak URL used for JWT issuer validation (differs from internal Docker URL) |
