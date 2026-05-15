@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 700" role="img" aria-labelledby="title desc">
+  <title id="title">Ciclo de Vida JML Detalhado</title>
+  <desc id="desc">Diagrama de sequência detalhado Joiner-Mover-Leaver com interações via Keycloak Admin REST API.</desc>
+  <rect width="1100" height="700" fill="#0f172a"/>
+  <defs>
+    <marker id="arrg" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <path d="M0,0 L12,4 L0,8 Z" fill="#22c55e"/>
+    </marker>
+    <marker id="arrp" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <path d="M0,0 L12,4 L0,8 Z" fill="#a78bfa"/>
+    </marker>
+    <marker id="arrr" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <path d="M0,0 L12,4 L0,8 Z" fill="#ef4444"/>
+    </marker>
+    <marker id="arry" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <path d="M0,0 L12,4 L0,8 Z" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrb" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <path d="M0,0 L12,4 L0,8 Z" fill="#60a5fa"/>
+    </marker>
+    <style>
+      text { font-family: Inter, Segoe UI, Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="50" y="48" fill="#f8fafc" font-size="30" font-weight="900">Ciclo de Vida de Identidade — JML Detalhado</text>
+  <text x="50" y="76" fill="#94a3b8" font-size="15">Sequência de chamadas REST à Keycloak Admin API para Joiner, Mover e Leaver.</text>
+
+  <!-- Actors -->
+  <rect x="30" y="96" width="130" height="40" rx="10" fill="#1e293b" stroke="#475569"/>
+  <text x="95" y="121" fill="#f8fafc" font-size="14" font-weight="700" text-anchor="middle">Admin / CLI</text>
+
+  <rect x="255" y="96" width="140" height="40" rx="10" fill="#052e16" stroke="#22c55e"/>
+  <text x="325" y="121" fill="#86efac" font-size="14" font-weight="700" text-anchor="middle">FastAPI /admin</text>
+
+  <rect x="520" y="96" width="150" height="40" rx="10" fill="#1e1b4b" stroke="#8b5cf6"/>
+  <text x="595" y="121" fill="#c4b5fd" font-size="14" font-weight="700" text-anchor="middle">Keycloak Admin</text>
+
+  <rect x="800" y="96" width="150" height="40" rx="10" fill="#1c1917" stroke="#78716c"/>
+  <text x="875" y="121" fill="#d4d0c8" font-size="14" font-weight="700" text-anchor="middle">PostgreSQL</text>
+
+  <!-- Lifelines -->
+  <line x1="95"  y1="136" x2="95"  y2="685" stroke="#334155" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="325" y1="136" x2="325" y2="685" stroke="#334155" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="595" y1="136" x2="595" y2="685" stroke="#334155" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="875" y1="136" x2="875" y2="685" stroke="#334155" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- === JOINER === -->
+  <rect x="0" y="148" width="1100" height="22" rx="0" fill="#052e16" opacity="0.6"/>
+  <text x="550" y="163" fill="#22c55e" font-size="13" font-weight="800" text-anchor="middle">JOINER — Novo colaborador integrado na organização</text>
+
+  <!-- J1 -->
+  <line x1="96"  y1="188" x2="314" y2="188" stroke="#22c55e" stroke-width="2" marker-end="url(#arrg)"/>
+  <rect x="115" y="172" width="180" height="20" rx="4" fill="#0f172a"/>
+  <text x="205" y="186" fill="#86efac" font-size="12" text-anchor="middle">J1. POST /admin/jml/joiner</text>
+
+  <!-- J2 -->
+  <line x1="326" y1="215" x2="584" y2="215" stroke="#22c55e" stroke-width="2" marker-end="url(#arrg)"/>
+  <rect x="370" y="199" width="195" height="20" rx="4" fill="#0f172a"/>
+  <text x="467" y="213" fill="#86efac" font-size="12" text-anchor="middle">J2. POST /users  {username, enabled:true}</text>
+
+  <!-- J3 -->
+  <line x1="584" y1="243" x2="864" y2="243" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrp)"/>
+  <rect x="635" y="227" width="190" height="20" rx="4" fill="#0f172a"/>
+  <text x="730" y="241" fill="#c4b5fd" font-size="12" text-anchor="middle">J3. INSERT keycloak_user (KC→PG)</text>
+
+  <!-- J4 -->
+  <line x1="596" y1="268" x2="326" y2="268" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrb)"/>
+  <rect x="375" y="252" width="190" height="20" rx="4" fill="#0f172a"/>
+  <text x="470" y="266" fill="#93c5fd" font-size="12" text-anchor="middle">J4. POST /users/{id}/role-mappings</text>
+
+  <!-- J5 -->
+  <line x1="326" y1="293" x2="584" y2="293" stroke="#22c55e" stroke-width="2" marker-end="url(#arrg)"/>
+  <rect x="370" y="277" width="190" height="20" rx="4" fill="#0f172a"/>
+  <text x="465" y="291" fill="#86efac" font-size="12" text-anchor="middle">J5. PUT /groups/{id}/members/{userId}</text>
+
+  <!-- J result -->
+  <line x1="324" y1="318" x2="96" y2="318" stroke="#22c55e" stroke-width="2" marker-end="url(#arrg)"/>
+  <rect x="110" y="302" width="195" height="20" rx="4" fill="#0f172a"/>
+  <text x="207" y="316" fill="#86efac" font-size="12" text-anchor="middle">201 Created — acesso inicial ativo</text>
+
+  <!-- === MOVER === -->
+  <rect x="0" y="334" width="1100" height="22" rx="0" fill="#1e1b4b" opacity="0.6"/>
+  <text x="550" y="349" fill="#a78bfa" font-size="13" font-weight="800" text-anchor="middle">MOVER — Colaborador muda de função / departamento</text>
+
+  <!-- M1 -->
+  <line x1="96"  y1="372" x2="314" y2="372" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrp)"/>
+  <rect x="115" y="356" width="185" height="20" rx="4" fill="#0f172a"/>
+  <text x="207" y="370" fill="#c4b5fd" font-size="12" text-anchor="middle">M1. POST /admin/jml/mover</text>
+
+  <!-- M2 -->
+  <line x1="326" y1="399" x2="584" y2="399" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrp)"/>
+  <rect x="355" y="383" width="210" height="20" rx="4" fill="#0f172a"/>
+  <text x="460" y="397" fill="#c4b5fd" font-size="12" text-anchor="middle">M2. DELETE /role-mappings (role antiga)</text>
+
+  <!-- M3 -->
+  <line x1="326" y1="424" x2="584" y2="424" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrp)"/>
+  <rect x="370" y="408" width="190" height="20" rx="4" fill="#0f172a"/>
+  <text x="465" y="422" fill="#c4b5fd" font-size="12" text-anchor="middle">M3. POST /role-mappings (nova role)</text>
+
+  <!-- M4 -->
+  <line x1="326" y1="449" x2="584" y2="449" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrp)"/>
+  <rect x="355" y="433" width="215" height="20" rx="4" fill="#0f172a"/>
+  <text x="462" y="447" fill="#c4b5fd" font-size="12" text-anchor="middle">M4. DELETE /sessions (revoga sessões ativas)</text>
+
+  <!-- M result -->
+  <line x1="324" y1="474" x2="96" y2="474" stroke="#a78bfa" stroke-width="2" marker-end="url(#arrp)"/>
+  <rect x="110" y="458" width="200" height="20" rx="4" fill="#0f172a"/>
+  <text x="210" y="472" fill="#c4b5fd" font-size="12" text-anchor="middle">200 OK — novo token reflecte role</text>
+
+  <!-- === LEAVER === -->
+  <rect x="0" y="490" width="1100" height="22" rx="0" fill="#450a0a" opacity="0.6"/>
+  <text x="550" y="505" fill="#f87171" font-size="13" font-weight="800" text-anchor="middle">LEAVER — Colaborador sai da organização</text>
+
+  <!-- L1 -->
+  <line x1="96"  y1="528" x2="314" y2="528" stroke="#ef4444" stroke-width="2" marker-end="url(#arrr)"/>
+  <rect x="115" y="512" width="185" height="20" rx="4" fill="#0f172a"/>
+  <text x="207" y="526" fill="#fca5a5" font-size="12" text-anchor="middle">L1. POST /admin/jml/leaver</text>
+
+  <!-- L2 -->
+  <line x1="326" y1="555" x2="584" y2="555" stroke="#ef4444" stroke-width="2" marker-end="url(#arrr)"/>
+  <rect x="355" y="539" width="210" height="20" rx="4" fill="#0f172a"/>
+  <text x="460" y="553" fill="#fca5a5" font-size="12" text-anchor="middle">L2. PUT /users/{id}  {enabled: false}</text>
+
+  <!-- L3 -->
+  <line x1="326" y1="580" x2="584" y2="580" stroke="#ef4444" stroke-width="2" marker-end="url(#arrr)"/>
+  <rect x="355" y="564" width="210" height="20" rx="4" fill="#0f172a"/>
+  <text x="460" y="578" fill="#fca5a5" font-size="12" text-anchor="middle">L3. DELETE /role-mappings (todas)</text>
+
+  <!-- L4 -->
+  <line x1="326" y1="605" x2="584" y2="605" stroke="#ef4444" stroke-width="2" marker-end="url(#arrr)"/>
+  <rect x="355" y="589" width="215" height="20" rx="4" fill="#0f172a"/>
+  <text x="462" y="603" fill="#fca5a5" font-size="12" text-anchor="middle">L4. DELETE /sessions (todas as sessões)</text>
+
+  <!-- L result -->
+  <line x1="324" y1="632" x2="96" y2="632" stroke="#ef4444" stroke-width="2" marker-end="url(#arrr)"/>
+  <rect x="110" y="616" width="200" height="20" rx="4" fill="#0f172a"/>
+  <text x="210" y="630" fill="#fca5a5" font-size="12" text-anchor="middle">200 OK — login bloqueado de imediato</text>
+
+  <!-- Footer -->
+  <text x="50" y="675" fill="#64748b" font-size="13">Scripts: jml/joiner.py · jml/mover.py · jml/leaver.py   |   REST: /admin/jml/{joiner,mover,leaver}   |   Client: jml/_keycloak_client.py</text>
+</svg>

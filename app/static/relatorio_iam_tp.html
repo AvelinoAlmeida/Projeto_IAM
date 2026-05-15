@@ -225,15 +225,9 @@
         </div>
       </div>
 
-      <div class="figure">
-        <img src="report-assets/arquitetura_iam.svg" alt="Arquitetura IAM">
-        <div class="caption">Figura 1 — Arquitetura executável: FastAPI, Keycloak 26 e PostgreSQL 16 sob Docker Compose.</div>
-      </div>
-
       <div style="margin-top:14px;">
         <span class="badge ok">8 páginas</span>
         <span class="badge ok">Print-ready A4</span>
-        <span class="badge ok">Com evidências visuais</span>
         <span class="badge info">docker compose up</span>
       </div>
       <span class="footer-note">Relatório IAM TP · MEI · ESTG-IPP · 2025/2026</span>
@@ -295,11 +289,6 @@
     <section class="page">
       <h2>2. Arquitetura da Solução</h2>
       <p>A solução é composta por três serviços containerizados que comunicam numa rede Docker interna. O Keycloak é o único componente com conhecimento completo dos utilizadores; a FastAPI apenas valida tokens e nunca armazena estado de sessão.</p>
-
-      <div class="figure">
-        <img src="report-assets/arquitetura_iam.svg" alt="Diagrama de arquitetura IAM">
-        <div class="caption">Figura 2 — Diagrama de arquitetura: fluxo de tokens, Admin API e isolamento de rede entre serviços.</div>
-      </div>
 
       <div class="two-col">
         <div>
@@ -467,11 +456,6 @@
         </tbody>
       </table>
 
-      <div class="figure">
-        <img src="report-assets/evidencias_dashboard.svg" alt="Evidências no dashboard">
-        <div class="caption">Figura 3 — Dashboard: sessão ativa com payload JWT, roles, countdown de expiração e evidências RBAC/MFA.</div>
-      </div>
-
       <div class="callout green">
         <strong>Segurança da validação:</strong> a JWKS é obtida de <code>http://keycloak:8080/realms/iam-tp/protocol/openid-connect/certs</code> na primeira validação e guardada em <code>_jwks_cache</code>. Audience (<code>fastapi-client</code>) e issuer (<code>http://localhost:8080/realms/iam-tp</code>) são validados em cada pedido, prevenindo tokens de outros realms ou clientes.
       </div>
@@ -485,11 +469,6 @@
     <section class="page">
       <h2>5. Autorização RBAC</h2>
       <p>A autorização é implementada como FastAPI dependencies — <code>require_role()</code> e <code>require_mfa()</code> — que injetam o utilizador autenticado e verificam as suas roles sem qualquer chamada ao Keycloak. A lógica vive inteiramente em <code>app/auth.py</code>.</p>
-
-      <div class="figure">
-        <img src="report-assets/matriz_rbac.svg" alt="Matriz RBAC">
-        <div class="caption">Figura 4 — Matriz RBAC: 200 (autorizado), 403 (role insuficiente), 401 (sem token). Admin inclui todos os acessos de colaborador.</div>
-      </div>
 
       <h3>Hierarquia de acesso</h3>
       <table>
@@ -539,11 +518,6 @@
 
       <h3>6.1 Fluxos Joiner / Mover / Leaver</h3>
       <p>Os três fluxos JML são implementados sobre a Keycloak Admin REST API. Cada operação garante atomicidade entre role e grupo, e o Mover/Leaver revogam sessões imediatamente — sem esperar pela expiração natural do token (300 s por defeito).</p>
-
-      <div class="figure">
-        <img src="report-assets/fluxo_jml.svg" alt="Fluxos JML">
-        <div class="caption">Figura 5 — Fluxos JML: Joiner cria e atribui, Mover troca e revoga, Leaver desativa e corta sessões.</div>
-      </div>
 
       <table>
         <thead><tr><th>Fluxo</th><th>Operações Admin API</th><th>Efeito de segurança</th></tr></thead>

@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt">
 <head>
 <meta charset="UTF-8">
@@ -297,11 +297,726 @@
     </div>
   </div>
 
+
+</div><!-- /page-relatorio -->
+
+
+<!-- ===================================================
+     TAB: AUTENTICAÇÃO
+     =================================================== -->
+<div id="page-auth">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+
+    <!-- Login Form -->
+    <div class="card" style="padding:24px;">
+      <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;color:#f1f5f9;">Login via Keycloak (OIDC)</h2>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Utilizador de teste</label>
+        <select id="user-preset" onchange="applyPreset()" style="width:100%">
+          <option value="">— Selecionar —</option>
+          <option value="admin.user|Admin@1234">admin.user (Admin@1234) · role: admin</option>
+          <option value="colaborador.user|Colab@1234">colaborador.user (Colab@1234) · role: colaborador</option>
+          <option value="visitante.user|Visit@1234">visitante.user (Visit@1234) · role: visitante</option>
+          <option value="custom">Outro utilizador...</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username</label>
+        <input class="input" id="login-username" type="text" placeholder="username" oninput="document.getElementById('otp-row').style.display=this.value.trim()==='admin.user'?'':'none'">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Password</label>
+        <input class="input" id="login-password" type="password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <div id="otp-row" style="margin-bottom:16px;display:none;">
+        <label style="font-size:12px;color:#c4b5fd;display:block;margin-bottom:4px;">Código OTP <span style="color:#475569;">(apenas para admin com MFA)</span></label>
+        <input class="input" id="login-otp" type="text" inputmode="numeric" maxlength="6" placeholder="6 dígitos do Authenticator" onkeydown="if(event.key==='Enter')doLogin()" style="letter-spacing:0.3em;font-family:monospace;">
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn-primary" id="btn-login" onclick="doLogin()" style="flex:1;">Entrar via Keycloak</button>
+        <button class="btn-ghost" onclick="doLogout()" id="btn-logout" style="display:none;">Sair</button>
+      </div>
+      <div id="login-result" style="margin-top:12px;"></div>
+    </div>
+
+    <!-- Token Info -->
+    <div class="card" style="padding:24px;">
+      <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;color:#f1f5f9;">Sessão Atual</h2>
+      <div id="session-empty" style="text-align:center;padding:32px;color:#475569;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" style="margin:0 auto 12px;display:block;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <p style="font-size:14px;">Sem sessão ativa. Faça login para começar.</p>
+      </div>
+      <div id="session-info" style="display:none;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px;background:#0f172a;border-radius:8px;">
+          <div style="width:40px;height:40px;background:#1e40af;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;" id="avatar-letter">A</div>
+          <div>
+            <div style="font-weight:600;color:#f1f5f9;" id="sess-username">—</div>
+            <div style="font-size:12px;color:#64748b;" id="sess-email">—</div>
+          </div>
+          <span id="sess-role-badge" class="badge-admin" style="margin-left:auto;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">admin</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div style="background:#0f172a;padding:10px;border-radius:8px;">
+            <div style="font-size:11px;color:#475569;margin-bottom:2px;">Subject (sub)</div>
+            <div style="font-size:11px;color:#94a3b8;word-break:break-all;" id="sess-sub">—</div>
+          </div>
+          <div style="background:#0f172a;padding:10px;border-radius:8px;">
+            <div style="font-size:11px;color:#475569;margin-bottom:2px;">Expira em</div>
+            <div style="font-size:14px;font-weight:600;color:#4ade80;" id="sess-expiry">—</div>
+          </div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <div style="font-size:12px;color:#64748b;margin-bottom:6px;">Roles (realm_access.roles)</div>
+          <div id="sess-roles" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
+        </div>
+        <details style="margin-top:12px;">
+          <summary style="font-size:12px;color:#475569;cursor:pointer;">Ver JWT payload completo</summary>
+          <pre id="sess-payload" style="margin-top:8px;font-size:11px;max-height:200px;overflow-y:auto;"></pre>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- Paste token -->
+  <div class="card" style="padding:24px;margin-top:24px;border:1px solid #4c1d95;">
+    <details>
+      <summary style="cursor:pointer;font-size:14px;font-weight:600;color:#c4b5fd;display:flex;align-items:center;gap:8px;">
+        <span>🔑 Token de Administrador — Demonstração para Avaliador</span>
+      </summary>
+      <div style="margin-top:16px;">
+
+        <!-- Acesso para avaliador (apenas para teste/demonstração) -->
+        <div style="background:#0f172a;border:1px solid #312e81;border-radius:8px;padding:14px;margin-bottom:14px;">
+          <div style="display:inline-flex;align-items:center;gap:6px;background:#1e1b4b;border:1px solid #4338ca;border-radius:20px;padding:3px 10px;margin-bottom:10px;">
+            <span style="font-size:10px;font-weight:800;color:#fbbf24;letter-spacing:0.06em;">APENAS PARA TESTE — AVALIAÇÃO DO DOCENTE</span>
+          </div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7;margin-bottom:10px;">
+            Cria/garante o utilizador <code style="color:#c4b5fd;">admin.demo</code> (sem OTP) e activa a sessão automaticamente.<br>
+            Permite testar todos os endpoints <code style="color:#c4b5fd;">/admin/*</code> — incluindo JML e auditoria.<br>
+            <span style="color:#fbbf24;">Nota:</span> token sem MFA → <code style="color:#f87171;">/admin/mfa-area</code> retornará <strong>403</strong> (comportamento esperado).
+          </div>
+          <button class="btn-primary" onclick="fetchAdminTokenForDemo()" style="width:100%;font-weight:600;">
+            Obter e activar token admin.demo
+          </button>
+          <div id="demo-fetch-result" style="margin-top:8px;"></div>
+        </div>
+
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:6px;">Colar Bearer token (JWT)</label>
+        <textarea class="input" id="paste-token" rows="3" placeholder="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..." style="font-family:monospace;font-size:11px;resize:vertical;"></textarea>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn-primary" onclick="usePastedToken()" style="flex:1;">Usar este token</button>
+          <button class="btn-ghost" onclick="document.getElementById('paste-token').value=''">Limpar</button>
+        </div>
+        <div id="paste-result" style="margin-top:8px;"></div>
+      </div>
+    </details>
+  </div>
+
+  <!-- Flow diagram -->
+  <div class="card" style="padding:24px;margin-top:24px;">
+    <h2 style="font-size:14px;font-weight:700;margin-bottom:16px;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Fluxo de Autenticação OIDC</h2>
+    <div style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;padding:8px 0;">
+      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
+        <div style="font-size:20px;">🖥️</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Dashboard<br><span style="color:#475569;">localhost:8000</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;margin:0 8px;">
+        <div style="font-size:10px;color:#3b82f6;margin-bottom:2px;">POST /auth/token</div>
+        <div style="width:60px;height:2px;background:linear-gradient(to right,#3b82f6,#1d4ed8);"></div>
+        <div style="font-size:10px;color:#64748b;margin-top:2px;">username+password</div>
+      </div>
+      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
+        <div style="font-size:20px;">⚡</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">FastAPI<br><span style="color:#475569;">:8000</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;margin:0 8px;">
+        <div style="font-size:10px;color:#8b5cf6;margin-bottom:2px;">ROPC grant</div>
+        <div style="width:60px;height:2px;background:linear-gradient(to right,#8b5cf6,#7c3aed);"></div>
+        <div style="font-size:10px;color:#64748b;margin-top:2px;">internal Docker</div>
+      </div>
+      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
+        <div style="font-size:20px;">🔑</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Keycloak<br><span style="color:#475569;">:8081</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;margin:0 8px;">
+        <div style="font-size:10px;color:#10b981;margin-bottom:2px;">JWT (RS256)</div>
+        <div style="width:60px;height:2px;background:linear-gradient(to right,#10b981,#059669);"></div>
+        <div style="font-size:10px;color:#64748b;margin-top:2px;">access_token</div>
+      </div>
+      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
+        <div style="font-size:20px;">🖥️</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Dashboard<br><span style="color:#475569;">armazena token</span></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ Token assinado RS256 (JWKS)</span>
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ Claims: sub · email · roles</span>
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ MFA (TOTP) para admin</span>
+      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ Realm: iam-tp</span>
+    </div>
+  </div>
+</div><!-- /page-auth -->
+
+
+<!-- ===================================================
+     TAB: AUTORIZAÇÃO
+     =================================================== -->
+<div id="page-rbac" style="display:none;">
+  <div class="card" style="padding:24px;margin-bottom:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Controlo de Acesso (RBAC)</h2>
+      <button class="btn-primary" onclick="testAll()">Testar Todos os Endpoints</button>
+    </div>
+    <div id="no-token-rbac" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
+      ⚠️ Sem token ativo. Faça login na tab Autenticação primeiro. Com token admin, os endpoints admin deixam de aparecer como "401 Sem token".
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Método</th><th>Endpoint</th><th>Role necessária</th><th>Resultado</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="endpoints-table"></tbody>
+    </table>
+  </div>
+
+  <div class="card" style="padding:24px;">
+    <h2 style="font-size:14px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:16px;">Matriz de Acesso por Role</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Endpoint</th>
+          <th style="text-align:center;color:#dc2626;">admin</th>
+          <th style="text-align:center;color:#2563eb;">colaborador</th>
+          <th style="text-align:center;color:#059669;">visitante</th>
+          <th style="text-align:center;color:#475569;">anónimo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /public</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /me</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">❌</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /colaborador/data</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /colaborador/perfil</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/users</code></td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/audit</code></td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/mfa-area + MFA</code></td><td style="text-align:center">✅ <span style="font-size:10px;color:#64748b;">(MFA obrig.)</span></td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px;padding:10px 14px;background:#1c0a2e;border:1px solid #7c3aed;border-radius:8px;font-size:12px;color:#c4b5fd;">
+      🔒 <strong>/admin/mfa-area</strong> exige role <code>admin</code> <em>e</em> autenticação MFA comprovada no JWT — verifica os claims <code>amr</code> (ex: <code>["otp"]</code>) e <code>acr</code>. Sem MFA → 403 mesmo com token admin válido.
+    </div>
+  </div>
+</div><!-- /page-rbac -->
+
+
+<!-- ===================================================
+     TAB: JML
+     =================================================== -->
+<div id="page-jml" style="display:none;">
+  <div id="no-admin-jml" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
+    ⚠️ Esta área requer role <strong>admin</strong>. Faça login como <code>admin.user</code>.
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
+    <!-- Joiner -->
+    <div class="card" style="padding:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <span style="font-size:20px;">➕</span>
+        <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Joiner — Criar Utilizador</h2>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username</label>
+        <input class="input" id="j-username" type="text" placeholder="ex: joao.silva">
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Email</label>
+        <input class="input" id="j-email" type="email" placeholder="ex: joao@empresa.pt">
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Role</label>
+        <select id="j-role" style="width:100%">
+          <option value="colaborador">colaborador</option>
+          <option value="visitante">visitante</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Password inicial (temporária)</label>
+        <input class="input" id="j-password" type="text" value="Temp@1234">
+      </div>
+      <button class="btn-success" onclick="doJoiner()" style="width:100%;">Criar utilizador no Keycloak</button>
+      <div id="joiner-result" style="margin-top:10px;"></div>
+    </div>
+
+    <!-- Mover -->
+    <div class="card" style="padding:24px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <span style="font-size:20px;">🔄</span>
+        <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Mover — Alterar Role</h2>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username</label>
+        <input class="input" id="m-username" type="text" placeholder="username existente">
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Role atual (old)</label>
+        <select id="m-old-role" style="width:100%">
+          <option value="colaborador">colaborador</option>
+          <option value="visitante">visitante</option>
+          <option value="admin">admin</option>
+        </select>
+      </div>
+      <div style="margin-bottom:16px;">
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nova role (new)</label>
+        <select id="m-new-role" style="width:100%">
+          <option value="admin">admin</option>
+          <option value="colaborador">colaborador</option>
+          <option value="visitante">visitante</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="doMover()" style="width:100%;">Mover + Revogar sessões</button>
+      <div id="mover-result" style="margin-top:10px;"></div>
+      <div style="margin-top:10px;padding:10px;background:#0f172a;border-radius:8px;font-size:12px;color:#475569;">
+        ℹ️ As sessões ativas são revogadas imediatamente — o utilizador é forçado a fazer login novamente com a nova role.
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaver -->
+  <div class="card" style="padding:24px;margin-bottom:24px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+      <span style="font-size:20px;">🚫</span>
+      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Leaver — Desativar Utilizador</h2>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
+      <div>
+        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username a desativar</label>
+        <input class="input" id="l-username" type="text" placeholder="username">
+      </div>
+      <button class="btn-danger" onclick="doLeaver()">Desativar + Revogar sessões</button>
+    </div>
+    <div id="leaver-result" style="margin-top:10px;"></div>
+    <div style="margin-top:10px;padding:10px;background:#0f172a;border-radius:8px;font-size:12px;color:#475569;">
+      ⚠️ O utilizador fica <code>enabled=false</code>, todas as roles são removidas e as sessões revogadas. O login falha imediatamente.
+    </div>
+  </div>
+
+  <!-- Users list -->
+  <div class="card" style="padding:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Utilizadores no Keycloak</h2>
+      <button class="btn-ghost" onclick="loadUsers()" style="font-size:13px;padding:6px 14px;">↻ Atualizar</button>
+    </div>
+    <div id="users-list"><p style="color:#475569;font-size:14px;">A carregar...</p></div>
+  </div>
+</div><!-- /page-jml -->
+
+
+<!-- ===================================================
+     TAB: AUDITORIA
+     =================================================== -->
+<div id="page-audit" style="display:none;">
+  <div id="no-admin-audit" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
+    ⚠️ Esta área requer role <strong>admin</strong>. Faça login como <code>admin.user</code>.
+  </div>
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px;">
+    <div class="card" style="padding:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Eventos de Utilizador</h2>
+        <div style="display:flex;gap:8px;">
+          <select id="audit-filter" style="font-size:13px;padding:6px 10px;">
+            <option value="">Todos os tipos</option>
+            <option value="LOGIN">LOGIN</option>
+            <option value="LOGIN_ERROR">LOGIN_ERROR</option>
+            <option value="LOGOUT">LOGOUT</option>
+            <option value="TOKEN_EXCHANGE">TOKEN_EXCHANGE</option>
+            <option value="CODE_TO_TOKEN">CODE_TO_TOKEN</option>
+            <option value="REFRESH_TOKEN">REFRESH_TOKEN</option>
+            <option value="UPDATE_PASSWORD">UPDATE_PASSWORD</option>
+            <option value="UPDATE_TOTP">UPDATE_TOTP</option>
+          </select>
+          <button class="btn-ghost" onclick="loadAudit()" style="font-size:13px;padding:6px 14px;">↻ Refresh</button>
+        </div>
+      </div>
+      <div id="audit-table-wrap" style="max-height:400px;overflow-y:auto;">
+        <p style="color:#475569;font-size:14px;">A carregar eventos...</p>
+      </div>
+    </div>
+
+    <div class="card" style="padding:24px;">
+      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;">Resumo por Tipo</h2>
+      <div id="audit-chart"><p style="color:#475569;font-size:14px;">A carregar...</p></div>
+    </div>
+  </div>
+
+  <div class="card" style="padding:24px;">
+    <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;">Eventos Administrativos (JML)</h2>
+    <div id="admin-events-wrap" style="max-height:300px;overflow-y:auto;">
+      <p style="color:#475569;font-size:14px;">A carregar eventos admin...</p>
+    </div>
+  </div>
+</div><!-- /page-audit -->
+
+
+
+<!-- ===================================================
+     TAB: PLANEAMENTO
+     =================================================== -->
+<div id="page-planeamento" style="display:none;">
+
+  <!-- Cabeçalho -->
+  <div class="card" style="padding:24px;margin-bottom:24px;background:linear-gradient(135deg,#0f172a 0%,#0f2518 100%);border-color:#166534;">
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div style="font-size:36px;">📐</div>
+      <div>
+        <h2 style="font-size:22px;font-weight:800;color:#f1f5f9;margin:0 0 4px;">Planeamento do Projeto</h2>
+        <p style="font-size:14px;color:#94a3b8;margin:0;">Fases de execução, decisões arquiteturais e milestones do trabalho prático MEI · ESTG-IPP.</p>
+      </div>
+      <div style="margin-left:auto;">
+        <span style="padding:4px 12px;background:#14532d;color:#86efac;border-radius:20px;font-size:12px;font-weight:600;">6 Fases</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FASE 1 -->
+  <div class="card" style="padding:0;margin-bottom:20px;overflow:hidden;border-left:4px solid #10b981;">
+
+    <!-- Cabeçalho da fase -->
+    <div style="padding:20px 24px;background:linear-gradient(135deg,#052e16 0%,#0f1f15 100%);display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div style="min-width:40px;height:40px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;">1</div>
+      <div style="flex:1;">
+        <h3 style="font-size:17px;font-weight:700;color:#f1f5f9;margin:0 0 2px;">Arranque e Arquitetura</h3>
+        <p style="font-size:13px;color:#6ee7b7;margin:0;">Definição do âmbito, enquadramento técnico e estrutura base do projeto</p>
+      </div>
+      <span style="padding:4px 14px;background:#064e3b;color:#6ee7b7;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #10b981;">Concluída ✓</span>
+    </div>
+
+    <!-- Corpo da fase -->
+    <div style="padding:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+
+      <!-- Casos de Uso Reais -->
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;grid-column:1/-1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <span style="font-size:20px;">🏢</span>
+          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Casos de Uso Reais — Onde se Aplica</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;font-size:12px;margin-bottom:14px;">
+          <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:14px;">
+            <div style="font-size:18px;margin-bottom:6px;">🏥</div>
+            <div style="font-weight:700;color:#93c5fd;margin-bottom:4px;">Hospital / Clínica</div>
+            <div style="color:#94a3b8;line-height:1.7;">Médicos (admin), Enfermeiros (colaborador), Pacientes (visitante). MFA para acesso a dados clínicos sensíveis.</div>
+          </div>
+          <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:14px;">
+            <div style="font-size:18px;margin-bottom:6px;">🏫</div>
+            <div style="font-weight:700;color:#93c5fd;margin-bottom:4px;">Universidade</div>
+            <div style="color:#94a3b8;line-height:1.7;">Docentes (admin), Alunos (colaborador), Visitantes. JML gere inscrições/saídas. RBAC controla acesso a pautas e recursos.</div>
+          </div>
+          <div style="background:#0a1628;border:2px solid #334155;border-radius:8px;padding:14px;position:relative;">
+            <div style="position:absolute;top:8px;right:8px;background:#1e40af;color:#93c5fd;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">TP</div>
+            <div style="font-size:18px;margin-bottom:6px;">🏢</div>
+            <div style="font-weight:700;color:#f1f5f9;margin-bottom:4px;">Empresa Fictícia</div>
+            <div style="color:#94a3b8;line-height:1.7;">Administradores (admin), Colaboradores, Parceiros (visitante). MFA para gestores. JML automatiza onboarding/offboarding de RH.</div>
+          </div>
+          <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:14px;">
+            <div style="font-size:18px;margin-bottom:6px;">🏛️</div>
+            <div style="font-weight:700;color:#93c5fd;margin-bottom:4px;">Portal Governamental</div>
+            <div style="color:#94a3b8;line-height:1.7;">Funcionários (admin), Técnicos (colaborador), Cidadãos (visitante). Auditoria obrigatória. MFA para dados sensíveis.</div>
+          </div>
+          <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:14px;">
+            <div style="font-size:18px;margin-bottom:6px;">🛒</div>
+            <div style="font-weight:700;color:#93c5fd;margin-bottom:4px;">E-commerce / SaaS</div>
+            <div style="color:#94a3b8;line-height:1.7;">Backoffice (admin), Operadores (colaborador), Clientes (visitante). SSO com Keycloak para múltiplas apps. JWT entre microserviços.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backlog e milestones -->
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;grid-column:1/-1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <span style="font-size:20px;">🗺️</span>
+          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Backlog e Milestones</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
+
+          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
+            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M1 — Infraestrutura</div>
+            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
+              <li>Docker Compose funcional</li>
+              <li>realm-export.json versionado</li>
+              <li>Arranque reproduzível</li>
+              <li>Health checks encadeados</li>
+            </ul>
+            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
+          </div>
+
+          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
+            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M2 — Autenticação OIDC</div>
+            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
+              <li>Cliente fastapi-client configurado</li>
+              <li>JWT RS256 validado via JWKS</li>
+              <li>Claims: sub, email, roles</li>
+              <li>Endpoint /auth/token funcional</li>
+            </ul>
+            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
+          </div>
+
+          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
+            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M3 — Autorização RBAC</div>
+            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
+              <li>3 roles: admin, colaborador, visitante</li>
+              <li>require_role() como dependency</li>
+              <li>Respostas 200 / 403 demonstráveis</li>
+              <li>Grupos espelham roles</li>
+            </ul>
+            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
+          </div>
+
+          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
+            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M4 — MFA (TOTP)</div>
+            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
+              <li>Flow browser-mfa configurado</li>
+              <li>CONFIGURE_TOTP no admin.user</li>
+              <li>require_mfa() verifica amr/acr</li>
+              <li>Endpoint /admin/mfa-area protegido</li>
+            </ul>
+            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
+          </div>
+
+          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
+            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M5 — Ciclo de Vida (JML)</div>
+            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
+              <li>Joiner: cria user + role + grupo</li>
+              <li>Mover: troca role, revoga sessões</li>
+              <li>Leaver: desativa, remove roles</li>
+              <li>CLI Python + endpoints REST</li>
+            </ul>
+            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
+          </div>
+
+          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
+            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M6 — Auditoria</div>
+            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
+              <li>Eventos LOGIN / LOGOUT / ERROR</li>
+              <li>Admin events (alterações de role)</li>
+              <li>Eventos MFA (UPDATE_TOTP)</li>
+              <li>/admin/audit + /audit/summary</li>
+            </ul>
+            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Evidência Fase 1 -->
+      <div style="grid-column:1/-1;" id="ev-slot-fase1"></div>
+    </div>
+  </div>
+
+  <!-- FASE 2 -->
+  <div class="card" style="padding:0;margin-bottom:20px;overflow:hidden;border-left:4px solid #3b82f6;">
+
+    <div style="padding:20px 24px;background:linear-gradient(135deg,#0c1a3a 0%,#0f172a 100%);display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div style="min-width:40px;height:40px;background:#3b82f6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;">2</div>
+      <div style="flex:1;">
+        <h3 style="font-size:17px;font-weight:700;color:#f1f5f9;margin:0 0 2px;">Implementação Base</h3>
+        <p style="font-size:13px;color:#93c5fd;margin:0;">Autenticação OIDC via Keycloak · Diretório de identidades · Primeiro checkpoint técnico</p>
+      </div>
+      <span style="padding:4px 14px;background:#1e3a8a;color:#93c5fd;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #3b82f6;">Concluída ✓</span>
+    </div>
+
+    <div style="padding:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+
+      <!-- Autenticação OIDC + Diretório (simplificado) -->
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:24px;grid-column:1/-1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+          <span style="font-size:20px;">🔐</span>
+          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Autenticação OIDC + Diretório</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
+          <div style="background:#0c1a3a;border-radius:10px;padding:16px;border:1px solid #1e40af;text-align:center;">
+            <div style="font-size:26px;margin-bottom:8px;">🗝️</div>
+            <div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:6px;">Realm iam-tp</div>
+            <div style="font-size:12px;color:#64748b;">Keycloak 26 · realm-export.json versionado · importação automática</div>
+          </div>
+          <div style="background:#0c1a3a;border-radius:10px;padding:16px;border:1px solid #1e40af;text-align:center;">
+            <div style="font-size:26px;margin-bottom:8px;">👤</div>
+            <div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:6px;">3 Utilizadores</div>
+            <div style="font-size:12px;color:#64748b;"><code style="color:#f87171;">admin.user</code> · <code style="color:#60a5fa;">colaborador.user</code> · <code style="color:#4ade80;">visitante.user</code></div>
+          </div>
+          <div style="background:#0c1a3a;border-radius:10px;padding:16px;border:1px solid #1e40af;text-align:center;">
+            <div style="font-size:26px;margin-bottom:8px;">🛡️</div>
+            <div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:6px;">3 Roles + Grupos</div>
+            <div style="font-size:12px;color:#64748b;">admin · colaborador · visitante · grupos espelham roles</div>
+          </div>
+          <div style="background:#0c1a3a;border-radius:10px;padding:16px;border:1px solid #1e40af;text-align:center;">
+            <div style="font-size:26px;margin-bottom:8px;">🔏</div>
+            <div style="font-size:13px;font-weight:700;color:#93c5fd;margin-bottom:6px;">JWT RS256 via JWKS</div>
+            <div style="font-size:12px;color:#64748b;">Validação local na FastAPI · sem round-trip por pedido · cache JWKS</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evidência Fase 2 -->
+      <div style="grid-column:1/-1;" id="ev-slot-fase2"></div>
+    </div>
+  </div>
+
+  <!-- FASE 3 -->
+  <div class="card" style="padding:0;margin-bottom:20px;overflow:hidden;border-left:4px solid #8b5cf6;">
+
+    <div style="padding:20px 24px;background:linear-gradient(135deg,#1a0c3a 0%,#0f172a 100%);display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div style="min-width:40px;height:40px;background:#8b5cf6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;">3</div>
+      <div style="flex:1;">
+        <h3 style="font-size:17px;font-weight:700;color:#f1f5f9;margin:0 0 2px;">Autorização + JML</h3>
+        <p style="font-size:13px;color:#c4b5fd;margin:0;">Papéis/políticas RBAC · Fluxos Joiner/Mover/Leaver via Admin API · Checkpoint intermédio</p>
+      </div>
+      <span style="padding:4px 14px;background:#3b0764;color:#c4b5fd;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #8b5cf6;">Concluída ✓</span>
+    </div>
+
+    <div style="padding:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+
+      <!-- Fluxos JML expandido -->
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:28px;grid-column:1/-1;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+          <span style="font-size:22px;">👥</span>
+          <span style="font-size:15px;font-weight:700;color:#f1f5f9;">Fluxos Joiner / Mover / Leaver</span>
+          <span style="margin-left:auto;font-size:11px;background:#1a0c3a;color:#c4b5fd;padding:3px 10px;border-radius:12px;border:1px solid #6d28d9;">Keycloak Admin REST API</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
+          <div style="background:#052e16;border-radius:12px;padding:20px;border:1px solid #166534;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+              <span style="font-size:28px;">🟢</span>
+              <span style="font-size:16px;font-weight:800;color:#4ade80;">JOINER</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+              <div style="display:flex;align-items:center;gap:8px;color:#86efac;"><span style="background:#064e3b;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">1</span>Criar utilizador no Keycloak</div>
+              <div style="display:flex;align-items:center;gap:8px;color:#86efac;"><span style="background:#064e3b;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">2</span>Atribuir role ao utilizador</div>
+              <div style="display:flex;align-items:center;gap:8px;color:#86efac;"><span style="background:#064e3b;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">3</span>Adicionar ao grupo correspondente</div>
+            </div>
+            <div style="margin-top:16px;padding:8px 12px;background:#064e3b;border-radius:8px;font-size:12px;color:#4ade80;font-weight:600;text-align:center;">✓ Acesso inicial ativo</div>
+          </div>
+          <div style="background:#0c1a3a;border-radius:12px;padding:20px;border:1px solid #1e3a8a;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+              <span style="font-size:28px;">🔵</span>
+              <span style="font-size:16px;font-weight:800;color:#93c5fd;">MOVER</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+              <div style="display:flex;align-items:center;gap:8px;color:#bfdbfe;"><span style="background:#1e3a8a;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">1</span>Remover role e grupo antigos</div>
+              <div style="display:flex;align-items:center;gap:8px;color:#bfdbfe;"><span style="background:#1e3a8a;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">2</span>Atribuir nova role e grupo</div>
+              <div style="display:flex;align-items:center;gap:8px;color:#bfdbfe;"><span style="background:#1e3a8a;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">3</span>Revogar todas as sessões ativas</div>
+            </div>
+            <div style="margin-top:16px;padding:8px 12px;background:#1e3a8a;border-radius:8px;font-size:12px;color:#93c5fd;font-weight:600;text-align:center;">↺ Novo token reflecte a mudança</div>
+          </div>
+          <div style="background:#2d0000;border-radius:12px;padding:20px;border:1px solid #7f1d1d;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+              <span style="font-size:28px;">🔴</span>
+              <span style="font-size:16px;font-weight:800;color:#f87171;">LEAVER</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+              <div style="display:flex;align-items:center;gap:8px;color:#fca5a5;"><span style="background:#7f1d1d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">1</span>Desativar conta (enabled: false)</div>
+              <div style="display:flex;align-items:center;gap:8px;color:#fca5a5;"><span style="background:#7f1d1d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">2</span>Remover todas as roles</div>
+              <div style="display:flex;align-items:center;gap:8px;color:#fca5a5;"><span style="background:#7f1d1d;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;">3</span>Revogar todas as sessões</div>
+            </div>
+            <div style="margin-top:16px;padding:8px 12px;background:#7f1d1d;border-radius:8px;font-size:12px;color:#f87171;font-weight:600;text-align:center;">✕ Login bloqueado de imediato</div>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding:10px 16px;background:#080d14;border-radius:8px;font-size:12px;color:#64748b;border:1px solid #1e293b;">
+          CLI: <code style="color:#c4b5fd;">jml/joiner.py · jml/mover.py · jml/leaver.py</code> &nbsp;·&nbsp; REST: <code style="color:#c4b5fd;">/admin/jml/{joiner,mover,leaver}</code> &nbsp;·&nbsp; Revogação imediata sem aguardar expiração do JWT
+        </div>
+      </div>
+
+      <!-- Evidência Fase 3 -->
+      <div style="grid-column:1/-1;" id="ev-slot-fase3"></div>
+    </div>
+  </div>
+
+  <!-- FASE 4 -->
+  <div class="card" style="padding:0;margin-bottom:20px;overflow:hidden;border-left:4px solid #f59e0b;">
+
+    <div style="padding:20px 24px;background:linear-gradient(135deg,#1c1400 0%,#0f172a 100%);display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div style="min-width:40px;height:40px;background:#f59e0b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;">4</div>
+      <div style="flex:1;">
+        <h3 style="font-size:17px;font-weight:700;color:#f1f5f9;margin:0 0 2px;">MFA + Auditoria</h3>
+        <p style="font-size:13px;color:#fcd34d;margin:0;">TOTP no Keycloak · Logging e evidências · Validação final técnica</p>
+      </div>
+      <span style="padding:4px 14px;background:#451a03;color:#fcd34d;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #f59e0b;">Concluída ✓</span>
+    </div>
+
+    <div style="padding:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
+
+      <!-- MFA TOTP — visual -->
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:24px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+          <span style="font-size:22px;">🔒</span>
+          <span style="font-size:15px;font-weight:700;color:#f1f5f9;">MFA — TOTP via Keycloak</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="background:#1c1400;border-radius:10px;padding:16px;border:1px solid #78350f;display:flex;align-items:center;gap:14px;">
+            <span style="font-size:28px;flex-shrink:0;">📱</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#fcd34d;margin-bottom:4px;">Setup TOTP</div>
+              <div style="font-size:12px;color:#94a3b8;">1.º login do admin.user → Keycloak apresenta QR code → Google Authenticator / Authy</div>
+            </div>
+          </div>
+          <div style="background:#1c1400;border-radius:10px;padding:16px;border:1px solid #78350f;display:flex;align-items:center;gap:14px;">
+            <span style="font-size:28px;flex-shrink:0;">🔑</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#fcd34d;margin-bottom:4px;">Flow Condicional</div>
+              <div style="font-size:12px;color:#94a3b8;"><code style="color:#fcd34d;">browser-mfa otp</code> — só desafia utilizadores com OTP configurado · <code style="color:#fcd34d;">direct grant with otp</code> para API</div>
+            </div>
+          </div>
+          <div style="background:#1c1400;border-radius:10px;padding:16px;border:1px solid #78350f;display:flex;align-items:center;gap:14px;">
+            <span style="font-size:28px;flex-shrink:0;">✅</span>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#fcd34d;margin-bottom:4px;">Verificação FastAPI</div>
+              <div style="font-size:12px;color:#94a3b8;"><code style="color:#fcd34d;">require_mfa()</code> valida claim <code style="color:#fcd34d;">amr: ["otp"]</code> · <code>/admin/mfa-area</code> exige admin + MFA</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auditoria — visual -->
+      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:24px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+          <span style="font-size:22px;">📋</span>
+          <span style="font-size:15px;font-weight:700;color:#f1f5f9;">Auditoria de Eventos</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div style="background:#1c1400;border-radius:8px;padding:12px;text-align:center;border:1px solid #78350f;">
+            <div style="font-size:20px;margin-bottom:6px;">👤</div>
+            <div style="font-size:11px;font-weight:700;color:#fcd34d;margin-bottom:4px;">Utilizador</div>
+            <div style="font-size:11px;color:#64748b;font-family:monospace;">LOGIN · LOGOUT<br>LOGIN_ERROR</div>
+          </div>
+          <div style="background:#1c1400;border-radius:8px;padding:12px;text-align:center;border:1px solid #78350f;">
+            <div style="font-size:20px;margin-bottom:6px;">🔒</div>
+            <div style="font-size:11px;font-weight:700;color:#fcd34d;margin-bottom:4px;">MFA</div>
+            <div style="font-size:11px;color:#64748b;font-family:monospace;">UPDATE_TOTP<br>REMOVE_TOTP</div>
+          </div>
+          <div style="background:#1c1400;border-radius:8px;padding:12px;text-align:center;border:1px solid #78350f;">
+            <div style="font-size:20px;margin-bottom:6px;">⚙️</div>
+            <div style="font-size:11px;font-weight:700;color:#fcd34d;margin-bottom:4px;">Admin</div>
+            <div style="font-size:11px;color:#64748b;font-family:monospace;">Role/Group changes<br>adminEventsEnabled</div>
+          </div>
+          <div style="background:#1c1400;border-radius:8px;padding:12px;text-align:center;border:1px solid #78350f;">
+            <div style="font-size:20px;margin-bottom:6px;">🔍</div>
+            <div style="font-size:11px;font-weight:700;color:#fcd34d;margin-bottom:4px;">Endpoints</div>
+            <div style="font-size:11px;color:#64748b;font-family:monospace;">/admin/audit<br>/admin/audit/summary</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evidência Fase 4 -->
+      <div style="grid-column:1/-1;" id="ev-slot-fase4"></div>
+    </div>
+  </div>
+
+
   <!-- Guia Demo ao Vivo -->
   <div style="margin-top:32px;">
     <button id="demo-toggle-btn" onclick="toggleDemo()"
       style="width:100%;text-align:left;padding:14px 20px;background:#1e293b;border:1px solid #334155;border-radius:10px;color:#f1f5f9;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px;">
-      <span id="demo-toggle-arrow">▶</span> Guia Demo ao Vivo — 8 passos · ~10 min
+      <span id="demo-toggle-arrow">▶</span> Demo ao Vivo — Guia Passo a Passo
     </button>
     <div id="demo-section" style="display:none;margin-top:16px;">
 
@@ -725,838 +1440,6 @@
 
     </div>
   </div>
-
-</div><!-- /page-relatorio -->
-
-
-<!-- ===================================================
-     TAB: AUTENTICAÇÃO
-     =================================================== -->
-<div id="page-auth">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
-
-    <!-- Login Form -->
-    <div class="card" style="padding:24px;">
-      <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;color:#f1f5f9;">Login via Keycloak (OIDC)</h2>
-      <div style="margin-bottom:12px;">
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Utilizador de teste</label>
-        <select id="user-preset" onchange="applyPreset()" style="width:100%">
-          <option value="">— Selecionar —</option>
-          <option value="admin.user|Admin@1234">admin.user (Admin@1234) · role: admin</option>
-          <option value="colaborador.user|Colab@1234">colaborador.user (Colab@1234) · role: colaborador</option>
-          <option value="visitante.user|Visit@1234">visitante.user (Visit@1234) · role: visitante</option>
-          <option value="custom">Outro utilizador...</option>
-        </select>
-      </div>
-      <div style="margin-bottom:12px;">
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username</label>
-        <input class="input" id="login-username" type="text" placeholder="username" oninput="document.getElementById('otp-row').style.display=this.value.trim()==='admin.user'?'':'none'">
-      </div>
-      <div style="margin-bottom:12px;">
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Password</label>
-        <input class="input" id="login-password" type="password" placeholder="password" onkeydown="if(event.key==='Enter')doLogin()">
-      </div>
-      <div id="otp-row" style="margin-bottom:16px;display:none;">
-        <label style="font-size:12px;color:#c4b5fd;display:block;margin-bottom:4px;">Código OTP <span style="color:#475569;">(apenas para admin com MFA)</span></label>
-        <input class="input" id="login-otp" type="text" inputmode="numeric" maxlength="6" placeholder="6 dígitos do Authenticator" onkeydown="if(event.key==='Enter')doLogin()" style="letter-spacing:0.3em;font-family:monospace;">
-      </div>
-      <div style="display:flex;gap:8px;">
-        <button class="btn-primary" id="btn-login" onclick="doLogin()" style="flex:1;">Entrar via Keycloak</button>
-        <button class="btn-ghost" onclick="doLogout()" id="btn-logout" style="display:none;">Sair</button>
-      </div>
-      <div id="login-result" style="margin-top:12px;"></div>
-    </div>
-
-    <!-- Token Info -->
-    <div class="card" style="padding:24px;">
-      <h2 style="font-size:16px;font-weight:700;margin-bottom:16px;color:#f1f5f9;">Sessão Atual</h2>
-      <div id="session-empty" style="text-align:center;padding:32px;color:#475569;">
-        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="1.5" style="margin:0 auto 12px;display:block;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        <p style="font-size:14px;">Sem sessão ativa. Faça login para começar.</p>
-      </div>
-      <div id="session-info" style="display:none;">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding:12px;background:#0f172a;border-radius:8px;">
-          <div style="width:40px;height:40px;background:#1e40af;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;" id="avatar-letter">A</div>
-          <div>
-            <div style="font-weight:600;color:#f1f5f9;" id="sess-username">—</div>
-            <div style="font-size:12px;color:#64748b;" id="sess-email">—</div>
-          </div>
-          <span id="sess-role-badge" class="badge-admin" style="margin-left:auto;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;">admin</span>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-          <div style="background:#0f172a;padding:10px;border-radius:8px;">
-            <div style="font-size:11px;color:#475569;margin-bottom:2px;">Subject (sub)</div>
-            <div style="font-size:11px;color:#94a3b8;word-break:break-all;" id="sess-sub">—</div>
-          </div>
-          <div style="background:#0f172a;padding:10px;border-radius:8px;">
-            <div style="font-size:11px;color:#475569;margin-bottom:2px;">Expira em</div>
-            <div style="font-size:14px;font-weight:600;color:#4ade80;" id="sess-expiry">—</div>
-          </div>
-        </div>
-        <div style="margin-bottom:8px;">
-          <div style="font-size:12px;color:#64748b;margin-bottom:6px;">Roles (realm_access.roles)</div>
-          <div id="sess-roles" style="display:flex;gap:6px;flex-wrap:wrap;"></div>
-        </div>
-        <details style="margin-top:12px;">
-          <summary style="font-size:12px;color:#475569;cursor:pointer;">Ver JWT payload completo</summary>
-          <pre id="sess-payload" style="margin-top:8px;font-size:11px;max-height:200px;overflow-y:auto;"></pre>
-        </details>
-      </div>
-    </div>
-  </div>
-
-  <!-- Paste token -->
-  <div class="card" style="padding:24px;margin-top:24px;border:1px solid #4c1d95;">
-    <details>
-      <summary style="cursor:pointer;font-size:14px;font-weight:600;color:#c4b5fd;display:flex;align-items:center;gap:8px;">
-        <span>🔑 Token de Administrador — Demonstração para Avaliador</span>
-      </summary>
-      <div style="margin-top:16px;">
-
-        <!-- Acesso para avaliador (apenas para teste/demonstração) -->
-        <div style="background:#0f172a;border:1px solid #312e81;border-radius:8px;padding:14px;margin-bottom:14px;">
-          <div style="display:inline-flex;align-items:center;gap:6px;background:#1e1b4b;border:1px solid #4338ca;border-radius:20px;padding:3px 10px;margin-bottom:10px;">
-            <span style="font-size:10px;font-weight:800;color:#fbbf24;letter-spacing:0.06em;">APENAS PARA TESTE — AVALIAÇÃO DO DOCENTE</span>
-          </div>
-          <div style="font-size:12px;color:#94a3b8;line-height:1.7;margin-bottom:10px;">
-            Cria/garante o utilizador <code style="color:#c4b5fd;">admin.demo</code> (sem OTP) e activa a sessão automaticamente.<br>
-            Permite testar todos os endpoints <code style="color:#c4b5fd;">/admin/*</code> — incluindo JML e auditoria.<br>
-            <span style="color:#fbbf24;">Nota:</span> token sem MFA → <code style="color:#f87171;">/admin/mfa-area</code> retornará <strong>403</strong> (comportamento esperado).
-          </div>
-          <button class="btn-primary" onclick="fetchAdminTokenForDemo()" style="width:100%;font-weight:600;">
-            Obter e activar token admin.demo
-          </button>
-          <div id="demo-fetch-result" style="margin-top:8px;"></div>
-        </div>
-
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:6px;">Colar Bearer token (JWT)</label>
-        <textarea class="input" id="paste-token" rows="3" placeholder="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..." style="font-family:monospace;font-size:11px;resize:vertical;"></textarea>
-        <div style="display:flex;gap:8px;margin-top:10px;">
-          <button class="btn-primary" onclick="usePastedToken()" style="flex:1;">Usar este token</button>
-          <button class="btn-ghost" onclick="document.getElementById('paste-token').value=''">Limpar</button>
-        </div>
-        <div id="paste-result" style="margin-top:8px;"></div>
-      </div>
-    </details>
-  </div>
-
-  <!-- Flow diagram -->
-  <div class="card" style="padding:24px;margin-top:24px;">
-    <h2 style="font-size:14px;font-weight:700;margin-bottom:16px;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;">Fluxo de Autenticação OIDC</h2>
-    <div style="display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;padding:8px 0;">
-      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
-        <div style="font-size:20px;">🖥️</div>
-        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Dashboard<br><span style="color:#475569;">localhost:8000</span></div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;margin:0 8px;">
-        <div style="font-size:10px;color:#3b82f6;margin-bottom:2px;">POST /auth/token</div>
-        <div style="width:60px;height:2px;background:linear-gradient(to right,#3b82f6,#1d4ed8);"></div>
-        <div style="font-size:10px;color:#64748b;margin-top:2px;">username+password</div>
-      </div>
-      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
-        <div style="font-size:20px;">⚡</div>
-        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">FastAPI<br><span style="color:#475569;">:8000</span></div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;margin:0 8px;">
-        <div style="font-size:10px;color:#8b5cf6;margin-bottom:2px;">ROPC grant</div>
-        <div style="width:60px;height:2px;background:linear-gradient(to right,#8b5cf6,#7c3aed);"></div>
-        <div style="font-size:10px;color:#64748b;margin-top:2px;">internal Docker</div>
-      </div>
-      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
-        <div style="font-size:20px;">🔑</div>
-        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Keycloak<br><span style="color:#475569;">:8081</span></div>
-      </div>
-      <div style="display:flex;flex-direction:column;align-items:center;margin:0 8px;">
-        <div style="font-size:10px;color:#10b981;margin-bottom:2px;">JWT (RS256)</div>
-        <div style="width:60px;height:2px;background:linear-gradient(to right,#10b981,#059669);"></div>
-        <div style="font-size:10px;color:#64748b;margin-top:2px;">access_token</div>
-      </div>
-      <div style="text-align:center;padding:12px 16px;background:#0f172a;border:1px solid #1e293b;border-radius:8px;">
-        <div style="font-size:20px;">🖥️</div>
-        <div style="font-size:12px;color:#94a3b8;margin-top:4px;">Dashboard<br><span style="color:#475569;">armazena token</span></div>
-      </div>
-    </div>
-    <div style="margin-top:12px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
-      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ Token assinado RS256 (JWKS)</span>
-      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ Claims: sub · email · roles</span>
-      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ MFA (TOTP) para admin</span>
-      <span style="font-size:11px;color:#475569;background:#0f172a;padding:4px 10px;border-radius:20px;border:1px solid #1e293b;">✓ Realm: iam-tp</span>
-    </div>
-  </div>
-</div><!-- /page-auth -->
-
-
-<!-- ===================================================
-     TAB: AUTORIZAÇÃO
-     =================================================== -->
-<div id="page-rbac" style="display:none;">
-  <div class="card" style="padding:24px;margin-bottom:24px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Controlo de Acesso (RBAC)</h2>
-      <button class="btn-primary" onclick="testAll()">Testar Todos os Endpoints</button>
-    </div>
-    <div id="no-token-rbac" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
-      ⚠️ Sem token ativo. Faça login na tab Autenticação primeiro. Com token admin, os endpoints admin deixam de aparecer como "401 Sem token".
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Método</th><th>Endpoint</th><th>Role necessária</th><th>Resultado</th><th></th>
-        </tr>
-      </thead>
-      <tbody id="endpoints-table"></tbody>
-    </table>
-  </div>
-
-  <div class="card" style="padding:24px;">
-    <h2 style="font-size:14px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:16px;">Matriz de Acesso por Role</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Endpoint</th>
-          <th style="text-align:center;color:#dc2626;">admin</th>
-          <th style="text-align:center;color:#2563eb;">colaborador</th>
-          <th style="text-align:center;color:#059669;">visitante</th>
-          <th style="text-align:center;color:#475569;">anónimo</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /public</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td></tr>
-        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /me</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">❌</td></tr>
-        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /colaborador/data</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
-        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /colaborador/perfil</code></td><td style="text-align:center">✅</td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
-        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/users</code></td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
-        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/audit</code></td><td style="text-align:center">✅</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
-        <tr><td><code style="color:#94a3b8;font-size:12px;">GET /admin/mfa-area + MFA</code></td><td style="text-align:center">✅ <span style="font-size:10px;color:#64748b;">(MFA obrig.)</span></td><td style="text-align:center">❌</td><td style="text-align:center">❌</td><td style="text-align:center">❌</td></tr>
-      </tbody>
-    </table>
-    <div style="margin-top:12px;padding:10px 14px;background:#1c0a2e;border:1px solid #7c3aed;border-radius:8px;font-size:12px;color:#c4b5fd;">
-      🔒 <strong>/admin/mfa-area</strong> exige role <code>admin</code> <em>e</em> autenticação MFA comprovada no JWT — verifica os claims <code>amr</code> (ex: <code>["otp"]</code>) e <code>acr</code>. Sem MFA → 403 mesmo com token admin válido.
-    </div>
-  </div>
-</div><!-- /page-rbac -->
-
-
-<!-- ===================================================
-     TAB: JML
-     =================================================== -->
-<div id="page-jml" style="display:none;">
-  <div id="no-admin-jml" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
-    ⚠️ Esta área requer role <strong>admin</strong>. Faça login como <code>admin.user</code>.
-  </div>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px;">
-    <!-- Joiner -->
-    <div class="card" style="padding:24px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-        <span style="font-size:20px;">➕</span>
-        <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Joiner — Criar Utilizador</h2>
-      </div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username</label>
-        <input class="input" id="j-username" type="text" placeholder="ex: joao.silva">
-      </div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Email</label>
-        <input class="input" id="j-email" type="email" placeholder="ex: joao@empresa.pt">
-      </div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Role</label>
-        <select id="j-role" style="width:100%">
-          <option value="colaborador">colaborador</option>
-          <option value="visitante">visitante</option>
-          <option value="admin">admin</option>
-        </select>
-      </div>
-      <div style="margin-bottom:16px;">
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Password inicial (temporária)</label>
-        <input class="input" id="j-password" type="text" value="Temp@1234">
-      </div>
-      <button class="btn-success" onclick="doJoiner()" style="width:100%;">Criar utilizador no Keycloak</button>
-      <div id="joiner-result" style="margin-top:10px;"></div>
-    </div>
-
-    <!-- Mover -->
-    <div class="card" style="padding:24px;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-        <span style="font-size:20px;">🔄</span>
-        <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Mover — Alterar Role</h2>
-      </div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username</label>
-        <input class="input" id="m-username" type="text" placeholder="username existente">
-      </div>
-      <div style="margin-bottom:10px;">
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Role atual (old)</label>
-        <select id="m-old-role" style="width:100%">
-          <option value="colaborador">colaborador</option>
-          <option value="visitante">visitante</option>
-          <option value="admin">admin</option>
-        </select>
-      </div>
-      <div style="margin-bottom:16px;">
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Nova role (new)</label>
-        <select id="m-new-role" style="width:100%">
-          <option value="admin">admin</option>
-          <option value="colaborador">colaborador</option>
-          <option value="visitante">visitante</option>
-        </select>
-      </div>
-      <button class="btn-primary" onclick="doMover()" style="width:100%;">Mover + Revogar sessões</button>
-      <div id="mover-result" style="margin-top:10px;"></div>
-      <div style="margin-top:10px;padding:10px;background:#0f172a;border-radius:8px;font-size:12px;color:#475569;">
-        ℹ️ As sessões ativas são revogadas imediatamente — o utilizador é forçado a fazer login novamente com a nova role.
-      </div>
-    </div>
-  </div>
-
-  <!-- Leaver -->
-  <div class="card" style="padding:24px;margin-bottom:24px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
-      <span style="font-size:20px;">🚫</span>
-      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Leaver — Desativar Utilizador</h2>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;">
-      <div>
-        <label style="font-size:12px;color:#64748b;display:block;margin-bottom:4px;">Username a desativar</label>
-        <input class="input" id="l-username" type="text" placeholder="username">
-      </div>
-      <button class="btn-danger" onclick="doLeaver()">Desativar + Revogar sessões</button>
-    </div>
-    <div id="leaver-result" style="margin-top:10px;"></div>
-    <div style="margin-top:10px;padding:10px;background:#0f172a;border-radius:8px;font-size:12px;color:#475569;">
-      ⚠️ O utilizador fica <code>enabled=false</code>, todas as roles são removidas e as sessões revogadas. O login falha imediatamente.
-    </div>
-  </div>
-
-  <!-- Users list -->
-  <div class="card" style="padding:24px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Utilizadores no Keycloak</h2>
-      <button class="btn-ghost" onclick="loadUsers()" style="font-size:13px;padding:6px 14px;">↻ Atualizar</button>
-    </div>
-    <div id="users-list"><p style="color:#475569;font-size:14px;">A carregar...</p></div>
-  </div>
-</div><!-- /page-jml -->
-
-
-<!-- ===================================================
-     TAB: AUDITORIA
-     =================================================== -->
-<div id="page-audit" style="display:none;">
-  <div id="no-admin-audit" class="result-warn" style="padding:12px;border-radius:8px;margin-bottom:16px;display:none;">
-    ⚠️ Esta área requer role <strong>admin</strong>. Faça login como <code>admin.user</code>.
-  </div>
-
-  <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px;margin-bottom:24px;">
-    <div class="card" style="padding:24px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;">Eventos de Utilizador</h2>
-        <div style="display:flex;gap:8px;">
-          <select id="audit-filter" style="font-size:13px;padding:6px 10px;">
-            <option value="">Todos os tipos</option>
-            <option value="LOGIN">LOGIN</option>
-            <option value="LOGIN_ERROR">LOGIN_ERROR</option>
-            <option value="LOGOUT">LOGOUT</option>
-            <option value="TOKEN_EXCHANGE">TOKEN_EXCHANGE</option>
-            <option value="CODE_TO_TOKEN">CODE_TO_TOKEN</option>
-            <option value="REFRESH_TOKEN">REFRESH_TOKEN</option>
-            <option value="UPDATE_PASSWORD">UPDATE_PASSWORD</option>
-            <option value="UPDATE_TOTP">UPDATE_TOTP</option>
-          </select>
-          <button class="btn-ghost" onclick="loadAudit()" style="font-size:13px;padding:6px 14px;">↻ Refresh</button>
-        </div>
-      </div>
-      <div id="audit-table-wrap" style="max-height:400px;overflow-y:auto;">
-        <p style="color:#475569;font-size:14px;">A carregar eventos...</p>
-      </div>
-    </div>
-
-    <div class="card" style="padding:24px;">
-      <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;">Resumo por Tipo</h2>
-      <div id="audit-chart"><p style="color:#475569;font-size:14px;">A carregar...</p></div>
-    </div>
-  </div>
-
-  <div class="card" style="padding:24px;">
-    <h2 style="font-size:16px;font-weight:700;color:#f1f5f9;margin-bottom:16px;">Eventos Administrativos (JML)</h2>
-    <div id="admin-events-wrap" style="max-height:300px;overflow-y:auto;">
-      <p style="color:#475569;font-size:14px;">A carregar eventos admin...</p>
-    </div>
-  </div>
-</div><!-- /page-audit -->
-
-
-
-<!-- ===================================================
-     TAB: PLANEAMENTO
-     =================================================== -->
-<div id="page-planeamento" style="display:none;">
-
-  <!-- Cabeçalho -->
-  <div class="card" style="padding:24px;margin-bottom:24px;background:linear-gradient(135deg,#0f172a 0%,#0f2518 100%);border-color:#166534;">
-    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-      <div style="font-size:36px;">📐</div>
-      <div>
-        <h2 style="font-size:22px;font-weight:800;color:#f1f5f9;margin:0 0 4px;">Planeamento do Projeto</h2>
-        <p style="font-size:14px;color:#94a3b8;margin:0;">Fases de execução, decisões arquiteturais e milestones do trabalho prático MEI · ESTG-IPP.</p>
-      </div>
-      <div style="margin-left:auto;">
-        <span style="padding:4px 12px;background:#14532d;color:#86efac;border-radius:20px;font-size:12px;font-weight:600;">6 Fases</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- FASE 1 -->
-  <div class="card" style="padding:0;margin-bottom:20px;overflow:hidden;border-left:4px solid #10b981;">
-
-    <!-- Cabeçalho da fase -->
-    <div style="padding:20px 24px;background:linear-gradient(135deg,#052e16 0%,#0f1f15 100%);display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-      <div style="min-width:40px;height:40px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;">1</div>
-      <div style="flex:1;">
-        <h3 style="font-size:17px;font-weight:700;color:#f1f5f9;margin:0 0 2px;">Arranque e Arquitetura</h3>
-        <p style="font-size:13px;color:#6ee7b7;margin:0;">Definição do âmbito, enquadramento técnico e estrutura base do projeto</p>
-      </div>
-      <span style="padding:4px 14px;background:#064e3b;color:#6ee7b7;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #10b981;">Concluída ✓</span>
-    </div>
-
-    <!-- Corpo da fase -->
-    <div style="padding:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
-
-      <!-- Validação de tema -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <span style="font-size:20px;">🎯</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Validação de Tema / Caso de Uso</span>
-        </div>
-        <ul style="margin:0;padding-left:18px;font-size:13px;color:#94a3b8;line-height:2;">
-          <li>Caso de uso: empresa fictícia com 3 perfis de acesso diferenciados</li>
-          <li>Escolha de Keycloak 26 como IdP/SSO central (requisito da UC)</li>
-          <li>Protocolo OIDC/OAuth2 para integração com apps cliente</li>
-          <li>FastAPI como API protegida que consome JWTs RS256</li>
-          <li>PostgreSQL como backend persistente do Keycloak</li>
-          <li>Requisito validado: autenticação, autorização, MFA, JML e auditoria</li>
-        </ul>
-      </div>
-
-      <!-- Desenho arquitetural -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <span style="font-size:20px;">🏗️</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Desenho Arquitetural</span>
-        </div>
-        <div style="font-family:monospace;font-size:11px;color:#6ee7b7;background:#020d07;border-radius:8px;padding:14px;line-height:1.8;margin-bottom:14px;border:1px solid #064e3b;">
-          ┌──── Docker Compose ─────────────────┐<br>
-          │  FastAPI :8000                       │<br>
-          │    └─ auth.py (RS256 / JWKS)         │<br>
-          │    └─ routes/ (public·colab·admin)   │<br>
-          │                                      │<br>
-          │  Keycloak 26 :8081                   │<br>
-          │    └─ Realm: iam-tp                  │<br>
-          │    └─ Roles: admin·colab·visitante   │<br>
-          │    └─ MFA: TOTP flow condicional     │<br>
-          │                                      │<br>
-          │  PostgreSQL 16 :5432 (interno)       │<br>
-          └──────────────────────────────────────┘
-        </div>
-        <ul style="margin:0;padding-left:18px;font-size:13px;color:#94a3b8;line-height:2;">
-          <li>Separação de responsabilidades: IdP ↔ API ↔ BD</li>
-          <li>JWT validado localmente (sem round-trip ao Keycloak por pedido)</li>
-          <li>Admin API do Keycloak usada apenas em operações JML</li>
-          <li>Configuração 100% via variáveis de ambiente (.env)</li>
-        </ul>
-      </div>
-
-      <!-- Casos de Uso Reais -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;grid-column:1/-1;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <span style="font-size:20px;">🏢</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Casos de Uso Reais — Onde se Aplica</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;font-size:12px;margin-bottom:14px;">
-          <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:14px;">
-            <div style="font-size:18px;margin-bottom:6px;">🏥</div>
-            <div style="font-weight:700;color:#93c5fd;margin-bottom:4px;">Hospital / Clínica</div>
-            <div style="color:#94a3b8;line-height:1.7;">Médicos (admin), Enfermeiros (colaborador), Pacientes (visitante). MFA para acesso a dados clínicos sensíveis.</div>
-          </div>
-          <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:14px;">
-            <div style="font-size:18px;margin-bottom:6px;">🏫</div>
-            <div style="font-weight:700;color:#93c5fd;margin-bottom:4px;">Universidade</div>
-            <div style="color:#94a3b8;line-height:1.7;">Docentes (admin), Alunos (colaborador), Visitantes. JML gere inscrições/saídas. RBAC controla acesso a pautas e recursos.</div>
-          </div>
-          <div style="background:#0a1628;border:2px solid #334155;border-radius:8px;padding:14px;position:relative;">
-            <div style="position:absolute;top:8px;right:8px;background:#1e40af;color:#93c5fd;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;">TP</div>
-            <div style="font-size:18px;margin-bottom:6px;">🏢</div>
-            <div style="font-weight:700;color:#f1f5f9;margin-bottom:4px;">Empresa Fictícia</div>
-            <div style="color:#94a3b8;line-height:1.7;">Administradores (admin), Colaboradores, Parceiros (visitante). MFA para gestores. JML automatiza onboarding/offboarding de RH.</div>
-          </div>
-          <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:14px;">
-            <div style="font-size:18px;margin-bottom:6px;">🏛️</div>
-            <div style="font-weight:700;color:#93c5fd;margin-bottom:4px;">Portal Governamental</div>
-            <div style="color:#94a3b8;line-height:1.7;">Funcionários (admin), Técnicos (colaborador), Cidadãos (visitante). Auditoria obrigatória. MFA para dados sensíveis.</div>
-          </div>
-          <div style="background:#0a1628;border:1px solid #1e293b;border-radius:8px;padding:14px;">
-            <div style="font-size:18px;margin-bottom:6px;">🛒</div>
-            <div style="font-weight:700;color:#93c5fd;margin-bottom:4px;">E-commerce / SaaS</div>
-            <div style="color:#94a3b8;line-height:1.7;">Backoffice (admin), Operadores (colaborador), Clientes (visitante). SSO com Keycloak para múltiplas apps. JWT entre microserviços.</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Backlog e milestones -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;grid-column:1/-1;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <span style="font-size:20px;">🗺️</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Backlog e Milestones</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;">
-
-          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
-            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M1 — Infraestrutura</div>
-            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
-              <li>Docker Compose funcional</li>
-              <li>realm-export.json versionado</li>
-              <li>Arranque reproduzível</li>
-              <li>Health checks encadeados</li>
-            </ul>
-            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
-          </div>
-
-          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
-            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M2 — Autenticação OIDC</div>
-            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
-              <li>Cliente fastapi-client configurado</li>
-              <li>JWT RS256 validado via JWKS</li>
-              <li>Claims: sub, email, roles</li>
-              <li>Endpoint /auth/token funcional</li>
-            </ul>
-            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
-          </div>
-
-          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
-            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M3 — Autorização RBAC</div>
-            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
-              <li>3 roles: admin, colaborador, visitante</li>
-              <li>require_role() como dependency</li>
-              <li>Respostas 200 / 403 demonstráveis</li>
-              <li>Grupos espelham roles</li>
-            </ul>
-            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
-          </div>
-
-          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
-            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M4 — MFA (TOTP)</div>
-            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
-              <li>Flow browser-mfa configurado</li>
-              <li>CONFIGURE_TOTP no admin.user</li>
-              <li>require_mfa() verifica amr/acr</li>
-              <li>Endpoint /admin/mfa-area protegido</li>
-            </ul>
-            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
-          </div>
-
-          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
-            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M5 — Ciclo de Vida (JML)</div>
-            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
-              <li>Joiner: cria user + role + grupo</li>
-              <li>Mover: troca role, revoga sessões</li>
-              <li>Leaver: desativa, remove roles</li>
-              <li>CLI Python + endpoints REST</li>
-            </ul>
-            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
-          </div>
-
-          <div style="background:#020d07;border:1px solid #166534;border-radius:8px;padding:14px;">
-            <div style="font-size:11px;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">M6 — Auditoria</div>
-            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
-              <li>Eventos LOGIN / LOGOUT / ERROR</li>
-              <li>Admin events (alterações de role)</li>
-              <li>Eventos MFA (UPDATE_TOTP)</li>
-              <li>/admin/audit + /audit/summary</li>
-            </ul>
-            <div style="margin-top:10px;font-size:11px;color:#4ade80;">✓ Concluído</div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- Evidência Fase 1 -->
-      <div style="grid-column:1/-1;" id="ev-slot-fase1"></div>
-    </div>
-  </div>
-
-  <!-- FASE 2 -->
-  <div class="card" style="padding:0;margin-bottom:20px;overflow:hidden;border-left:4px solid #3b82f6;">
-
-    <div style="padding:20px 24px;background:linear-gradient(135deg,#0c1a3a 0%,#0f172a 100%);display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-      <div style="min-width:40px;height:40px;background:#3b82f6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;">2</div>
-      <div style="flex:1;">
-        <h3 style="font-size:17px;font-weight:700;color:#f1f5f9;margin:0 0 2px;">Implementação Base</h3>
-        <p style="font-size:13px;color:#93c5fd;margin:0;">Autenticação OIDC via Keycloak · Diretório de identidades · Primeiro checkpoint técnico</p>
-      </div>
-      <span style="padding:4px 14px;background:#1e3a8a;color:#93c5fd;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #3b82f6;">Concluída ✓</span>
-    </div>
-
-    <div style="padding:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
-
-      <!-- Autenticação OIDC + Diretório -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <span style="font-size:20px;">🔐</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Autenticação OIDC + Diretório</span>
-        </div>
-        <ul style="margin:0;padding-left:18px;font-size:13px;color:#94a3b8;line-height:2;">
-          <li>Realm <code style="color:#93c5fd;">iam-tp</code> criado e exportado para <code style="color:#93c5fd;">realm-export.json</code></li>
-          <li>3 utilizadores pré-configurados: <code style="color:#93c5fd;">admin.user</code>, <code style="color:#93c5fd;">colaborador.user</code>, <code style="color:#93c5fd;">visitante.user</code></li>
-          <li>3 realm roles: <code style="color:#dc2626;">admin</code>, <code style="color:#2563eb;">colaborador</code>, <code style="color:#059669;">visitante</code></li>
-          <li>3 groups: Admins, Colaboradores, Visitantes (espelham as roles)</li>
-          <li>Cliente OIDC <code style="color:#93c5fd;">fastapi-client</code> configurado (Standard Flow + ROPC)</li>
-          <li>JWT RS256 validado pela FastAPI via JWKS (sem round-trip por pedido)</li>
-          <li>Claims extraídas: <code style="color:#93c5fd;">sub</code>, <code style="color:#93c5fd;">email</code>, <code style="color:#93c5fd;">preferred_username</code>, <code style="color:#93c5fd;">realm_access.roles</code></li>
-        </ul>
-        <div style="margin-top:14px;padding:8px 12px;background:#0c1a3a;border-radius:6px;font-size:12px;color:#93c5fd;border:1px solid #1e40af;">
-          Ficheiros: <code>app/auth.py</code> · <code>app/config.py</code> · <code>realm-export.json</code>
-        </div>
-      </div>
-
-      <!-- Primeiro checkpoint técnico -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <span style="font-size:20px;">🏁</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Primeiro Checkpoint Técnico</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div style="background:#0c1a3a;border-radius:8px;padding:12px;border:1px solid #1e3a8a;">
-            <div style="font-size:12px;font-weight:700;color:#93c5fd;margin-bottom:6px;">Evidências verificadas</div>
-            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
-              <li><code>docker compose up --build</code> arranca sem erros</li>
-              <li>Realm importado automaticamente (<code>--import-realm</code>)</li>
-              <li><code>GET /health</code> → <code style="color:#4ade80;">200 OK</code></li>
-              <li><code>POST /auth/token</code> devolve JWT válido</li>
-              <li><code>GET /me</code> com token → claims corretas</li>
-              <li>Token inválido → <code style="color:#f87171;">401 Unauthorized</code></li>
-            </ul>
-          </div>
-          <div style="background:#0c1a3a;border-radius:8px;padding:12px;border:1px solid #1e3a8a;">
-            <div style="font-size:12px;font-weight:700;color:#93c5fd;margin-bottom:6px;">Testes automatizados</div>
-            <ul style="margin:0;padding-left:16px;font-size:12px;color:#94a3b8;line-height:1.9;">
-              <li><code>test_get_current_user_decodes_rs256_token</code> — assinatura, issuer, audience</li>
-              <li>JWKS mockado com <code>unittest.mock.patch.object</code></li>
-              <li>Resultado: <code style="color:#4ade80;">pytest → 4 passed</code></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Evidência Fase 2 -->
-      <div style="grid-column:1/-1;" id="ev-slot-fase2"></div>
-    </div>
-  </div>
-
-  <!-- FASE 3 -->
-  <div class="card" style="padding:0;margin-bottom:20px;overflow:hidden;border-left:4px solid #8b5cf6;">
-
-    <div style="padding:20px 24px;background:linear-gradient(135deg,#1a0c3a 0%,#0f172a 100%);display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-      <div style="min-width:40px;height:40px;background:#8b5cf6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;">3</div>
-      <div style="flex:1;">
-        <h3 style="font-size:17px;font-weight:700;color:#f1f5f9;margin:0 0 2px;">Autorização + JML</h3>
-        <p style="font-size:13px;color:#c4b5fd;margin:0;">Papéis/políticas RBAC · Fluxos Joiner/Mover/Leaver via Admin API · Checkpoint intermédio</p>
-      </div>
-      <span style="padding:4px 14px;background:#3b0764;color:#c4b5fd;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #8b5cf6;">Concluída ✓</span>
-    </div>
-
-    <div style="padding:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
-
-      <!-- Autorização RBAC -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <span style="font-size:20px;">🛡️</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Implementação de Papéis/Políticas</span>
-        </div>
-        <ul style="margin:0;padding-left:18px;font-size:13px;color:#94a3b8;line-height:2;">
-          <li><code style="color:#c4b5fd;">require_role()</code> como FastAPI dependency — extrai roles de <code style="color:#c4b5fd;">realm_access.roles</code></li>
-          <li>Admin herda acesso a endpoints de colaborador</li>
-          <li>Respostas explícitas: <code style="color:#4ade80;">200</code> (autorizado) · <code style="color:#f87171;">403</code> (role insuficiente) · <code style="color:#f87171;">401</code> (sem token)</li>
-          <li><code>/colaborador/*</code> — roles: colaborador, admin</li>
-          <li><code>/admin/*</code> — role: admin</li>
-          <li><code>/admin/mfa-area</code> — admin + MFA provada via <code style="color:#c4b5fd;">require_mfa()</code></li>
-        </ul>
-        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;font-size:11px;font-weight:700;">
-          <div style="background:#052e16;color:#4ade80;border-radius:6px;padding:6px;">admin<br>acesso total</div>
-          <div style="background:#0c1a3a;color:#93c5fd;border-radius:6px;padding:6px;">colaborador<br>área própria</div>
-          <div style="background:#1c1400;color:#facc15;border-radius:6px;padding:6px;">visitante<br>só público</div>
-        </div>
-      </div>
-
-      <!-- Fluxos JML -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <span style="font-size:20px;">👥</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Fluxos Joiner / Mover / Leaver</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;font-size:12px;">
-          <div style="background:#052e16;border-radius:8px;padding:10px 14px;border-left:3px solid #10b981;">
-            <span style="font-weight:700;color:#4ade80;">JOINER</span>
-            <span style="color:#94a3b8;margin-left:8px;">Cria utilizador → atribui role → adiciona a grupo</span>
-          </div>
-          <div style="background:#0c1a3a;border-radius:8px;padding:10px 14px;border-left:3px solid #3b82f6;">
-            <span style="font-weight:700;color:#93c5fd;">MOVER</span>
-            <span style="color:#94a3b8;margin-left:8px;">Remove role/grupo antigo → atribui novo → revoga sessões</span>
-          </div>
-          <div style="background:#2d0000;border-radius:8px;padding:10px 14px;border-left:3px solid #dc2626;">
-            <span style="font-weight:700;color:#f87171;">LEAVER</span>
-            <span style="color:#94a3b8;margin-left:8px;">Desativa conta → remove roles → revoga sessões</span>
-          </div>
-        </div>
-        <ul style="margin:12px 0 0;padding-left:18px;font-size:12px;color:#94a3b8;line-height:1.9;">
-          <li>CLI Python (<code>jml/</code>) + endpoints REST (<code>/admin/jml/*</code>)</li>
-          <li>Keycloak Admin REST API com service account do master realm</li>
-          <li>Revogação imediata de sessões — sem esperar expiração do token</li>
-        </ul>
-      </div>
-
-      <!-- Checkpoint intermédio -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;grid-column:1/-1;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <span style="font-size:20px;">🏁</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Checkpoint Intermédio</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;font-size:12px;">
-          <div style="background:#1a0c3a;border-radius:8px;padding:12px;border:1px solid #4c1d95;">
-            <div style="font-weight:700;color:#c4b5fd;margin-bottom:6px;">RBAC demonstrável</div>
-            <div style="color:#94a3b8;line-height:1.8;">Visitante → 403 em /colaborador<br>Colaborador → 200 em /colaborador<br>Colaborador → 403 em /admin<br>Admin → 200 em /admin</div>
-          </div>
-          <div style="background:#1a0c3a;border-radius:8px;padding:12px;border:1px solid #4c1d95;">
-            <div style="font-weight:700;color:#c4b5fd;margin-bottom:6px;">JML demonstrável</div>
-            <div style="color:#94a3b8;line-height:1.8;">Joiner cria alice como colaborador<br>Mover eleva alice para admin<br>Alice já não pode usar token anterior<br>Leaver desativa alice — login negado</div>
-          </div>
-          <div style="background:#1a0c3a;border-radius:8px;padding:12px;border:1px solid #4c1d95;">
-            <div style="font-weight:700;color:#c4b5fd;margin-bottom:6px;">Testes RBAC</div>
-            <div style="color:#94a3b8;line-height:1.8;"><code>test_require_role_allows_admin</code> — OK<br><code>test_require_role_denies_non_admin</code> — OK</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Evidência Fase 3 -->
-      <div style="grid-column:1/-1;" id="ev-slot-fase3"></div>
-    </div>
-  </div>
-
-  <!-- FASE 4 -->
-  <div class="card" style="padding:0;margin-bottom:20px;overflow:hidden;border-left:4px solid #f59e0b;">
-
-    <div style="padding:20px 24px;background:linear-gradient(135deg,#1c1400 0%,#0f172a 100%);display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-      <div style="min-width:40px;height:40px;background:#f59e0b;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:#fff;flex-shrink:0;">4</div>
-      <div style="flex:1;">
-        <h3 style="font-size:17px;font-weight:700;color:#f1f5f9;margin:0 0 2px;">MFA + Auditoria</h3>
-        <p style="font-size:13px;color:#fcd34d;margin:0;">TOTP no Keycloak · Logging e evidências · Validação final técnica</p>
-      </div>
-      <span style="padding:4px 14px;background:#451a03;color:#fcd34d;border-radius:20px;font-size:12px;font-weight:600;border:1px solid #f59e0b;">Concluída ✓</span>
-    </div>
-
-    <div style="padding:24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;">
-
-      <!-- MFA TOTP -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <span style="font-size:20px;">🔒</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">MFA — TOTP via Keycloak</span>
-        </div>
-        <ul style="margin:0;padding-left:18px;font-size:13px;color:#94a3b8;line-height:2;">
-          <li>Flow <code style="color:#fcd34d;">browser-mfa</code> ativo como browser flow do realm</li>
-          <li>Sub-flow <code style="color:#fcd34d;">browser-mfa otp</code> condicional — só desafia utilizadores com OTP configurado</li>
-          <li><code style="color:#fcd34d;">CONFIGURE_TOTP</code> como Required Action do <code style="color:#fcd34d;">admin.user</code></li>
-          <li>Flow <code style="color:#fcd34d;">direct grant with otp</code> ativo para autenticação via API</li>
-          <li><code style="color:#fcd34d;">require_mfa()</code> inspeciona claim <code style="color:#fcd34d;">amr</code> (<code>otp</code>, <code>mfa</code>, <code>2fa</code>) e <code style="color:#fcd34d;">acr</code></li>
-          <li><code>/admin/mfa-area</code> — exige admin role <strong>e</strong> MFA comprovada no JWT</li>
-        </ul>
-        <div style="margin-top:14px;padding:10px 14px;background:#1c1400;border-radius:8px;font-size:12px;color:#fcd34d;border:1px solid #78350f;line-height:1.8;">
-          <strong>Setup:</strong> 1.º login de admin.user → Keycloak abre QR code → Google Authenticator / Authy<br>
-          <strong>Resultado:</strong> token com <code>amr: ["otp"]</code> → /admin/mfa-area retorna 200
-        </div>
-      </div>
-
-      <!-- Logging e evidências -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-          <span style="font-size:20px;">📋</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Logging e Evidências</span>
-        </div>
-        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
-          <div style="background:#1c1400;border-radius:8px;padding:10px 14px;font-size:12px;">
-            <div style="font-weight:700;color:#fcd34d;margin-bottom:4px;">Eventos de utilizador</div>
-            <div style="color:#94a3b8;font-family:monospace;">LOGIN · LOGIN_ERROR · LOGOUT · REFRESH_TOKEN · CODE_TO_TOKEN</div>
-          </div>
-          <div style="background:#1c1400;border-radius:8px;padding:10px 14px;font-size:12px;">
-            <div style="font-weight:700;color:#fcd34d;margin-bottom:4px;">Eventos MFA</div>
-            <div style="color:#94a3b8;font-family:monospace;">UPDATE_TOTP · UPDATE_TOTP_ERROR · REMOVE_TOTP</div>
-          </div>
-          <div style="background:#1c1400;border-radius:8px;padding:10px 14px;font-size:12px;">
-            <div style="font-weight:700;color:#fcd34d;margin-bottom:4px;">Admin events</div>
-            <div style="color:#94a3b8;font-family:monospace;">Alterações de role/group · adminEventsEnabled + adminEventsDetailsEnabled</div>
-          </div>
-        </div>
-        <ul style="margin:0;padding-left:18px;font-size:12px;color:#94a3b8;line-height:1.9;">
-          <li><code>GET /admin/audit</code> — eventos + admin-events em bruto</li>
-          <li><code>GET /admin/audit/summary</code> — contagem agrupada por tipo</li>
-          <li>Consultável via Swagger UI, dashboard ou Keycloak Admin Console</li>
-        </ul>
-      </div>
-
-      <!-- Validação final -->
-      <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;grid-column:1/-1;">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <span style="font-size:20px;">✅</span>
-          <span style="font-size:14px;font-weight:700;color:#f1f5f9;">Validação Final Técnica</span>
-        </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;font-size:12px;">
-          <div style="background:#052e16;border-radius:8px;padding:12px;border:1px solid #166534;text-align:center;">
-            <div style="font-size:22px;margin-bottom:4px;">🔐</div>
-            <div style="font-weight:700;color:#4ade80;margin-bottom:4px;">Autenticação</div>
-            <div style="color:#94a3b8;">JWT RS256 · JWKS · issuer · audience</div>
-          </div>
-          <div style="background:#052e16;border-radius:8px;padding:12px;border:1px solid #166534;text-align:center;">
-            <div style="font-size:22px;margin-bottom:4px;">🛡️</div>
-            <div style="font-weight:700;color:#4ade80;margin-bottom:4px;">Autorização RBAC</div>
-            <div style="color:#94a3b8;">3 roles · 200/403 demonstráveis · herança admin</div>
-          </div>
-          <div style="background:#052e16;border-radius:8px;padding:12px;border:1px solid #166534;text-align:center;">
-            <div style="font-size:22px;margin-bottom:4px;">🔒</div>
-            <div style="font-weight:700;color:#4ade80;margin-bottom:4px;">MFA TOTP</div>
-            <div style="color:#94a3b8;">Flow condicional · amr verificado · /mfa-area protegido</div>
-          </div>
-          <div style="background:#052e16;border-radius:8px;padding:12px;border:1px solid #166534;text-align:center;">
-            <div style="font-size:22px;margin-bottom:4px;">👥</div>
-            <div style="font-weight:700;color:#4ade80;margin-bottom:4px;">JML</div>
-            <div style="color:#94a3b8;">Joiner · Mover · Leaver · sessões revogadas</div>
-          </div>
-          <div style="background:#052e16;border-radius:8px;padding:12px;border:1px solid #166534;text-align:center;">
-            <div style="font-size:22px;margin-bottom:4px;">📋</div>
-            <div style="font-weight:700;color:#4ade80;margin-bottom:4px;">Auditoria</div>
-            <div style="color:#94a3b8;">LOGIN/ERROR · TOTP · admin events · dashboard</div>
-          </div>
-          <div style="background:#052e16;border-radius:8px;padding:12px;border:1px solid #166534;text-align:center;">
-            <div style="font-size:22px;margin-bottom:4px;">🐳</div>
-            <div style="font-weight:700;color:#4ade80;margin-bottom:4px;">Infraestrutura</div>
-            <div style="color:#94a3b8;">docker compose up · realm-export.json · reproduzível</div>
-          </div>
-        </div>
-        <div style="margin-top:16px;padding:12px 16px;background:#1c1400;border-radius:8px;border:1px solid #78350f;display:flex;align-items:center;gap:12px;">
-          <span style="font-size:20px;">🧪</span>
-          <div style="font-size:12px;color:#94a3b8;">
-            <strong style="color:#fcd34d;">Testes automatizados:</strong>
-            <code style="color:#4ade80;margin-left:6px;">python -m pytest tests/ -v → 4 passed</code>
-            <span style="color:#475569;margin-left:10px;">·</span>
-            <code style="color:#94a3b8;margin-left:10px;">test_require_mfa_denies_without_otp</code> confirma rejeição sem MFA
-          </div>
-        </div>
-      </div>
-
-      <!-- Evidência Fase 4 -->
-      <div style="grid-column:1/-1;" id="ev-slot-fase4"></div>
-    </div>
-  </div>
-
 </div><!-- /page-planeamento -->
 
 </div><!-- /main -->
@@ -1584,20 +1467,33 @@ const ENDPOINTS = [
 
 const EV_FASES = ['fase1','fase2','fase3','fase4'];
 const EV_LABELS = { fase1:'Arranque e Arquitetura', fase2:'Implementação Base', fase3:'Autorização + JML', fase4:'MFA + Auditoria' };
+const EV_DIAGRAMS = {
+  fase1: { src: '/static/report-assets/fluxo_oidc.svg',         alt: 'Fluxo OIDC/OAuth2',               caption: 'Sequência de autenticação: Browser → FastAPI → Keycloak → validação JWT RS256 via JWKS.' },
+  fase2: { src: '/static/report-assets/fluxo_oidc.svg',         alt: 'Fluxo OIDC detalhado',             caption: 'ROPC Grant em 10 passos: emissão de token, caching JWKS e validação local sem round-trip ao Keycloak.' },
+  fase3: { src: '/static/report-assets/fluxo_jml_detalhado.svg',alt: 'Ciclo de Vida JML detalhado',      caption: 'Sequência REST Joiner/Mover/Leaver: chamadas exactas à Keycloak Admin API (criação, role mapping, revogação).' },
+  fase4: { src: '/static/report-assets/fluxo_mfa_totp.svg',     alt: 'Fluxo MFA/TOTP',                  caption: 'Fluxo MFA em 12 passos: desafio KC, geração TOTP, verificação de acr/amr pelo require_mfa().' }
+};
 
 function buildEvidenceSlot(key) {
   const slot = document.getElementById('ev-slot-' + key);
   if (!slot) return;
+  const d = EV_DIAGRAMS[key];
   slot.innerHTML = `
-    <div style="margin-top:12px;padding:12px 16px;background:#080d14;border:1px dashed #334155;border-radius:8px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span style="font-size:14px;">📷</span>
-      <span style="font-size:12px;color:#64748b;flex:1;">Evidência — ${EV_LABELS[key]}</span>
-      <input type="file" id="ev-input-${key}" accept="image/*" style="display:none;" onchange="loadEvidence('${key}',this)">
-      <button onclick="document.getElementById('ev-input-${key}').click()" style="font-size:11px;padding:5px 12px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;cursor:pointer;">Inserir imagem</button>
-      <button id="ev-clear-${key}" onclick="clearEvidence('${key}')" style="display:none;font-size:11px;padding:5px 12px;background:#2d1515;color:#f87171;border:1px solid #7f1d1d;border-radius:6px;cursor:pointer;">✕ Remover</button>
-    </div>
-    <div id="ev-img-${key}" style="display:none;margin-top:8px;">
-      <img id="ev-preview-${key}" style="max-width:100%;border-radius:8px;border:1px solid #334155;display:block;">
+    <div style="background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:20px;margin-top:4px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+        <span style="font-size:16px;">📊</span>
+        <span style="font-size:13px;font-weight:700;color:#f1f5f9;">Evidência — ${EV_LABELS[key]}</span>
+        <span style="margin-left:auto;font-size:11px;background:#0c1a3a;color:#60a5fa;padding:3px 10px;border-radius:12px;border:1px solid #1e40af;">Diagrama</span>
+        <input type="file" id="ev-input-${key}" accept="image/*" style="display:none;" onchange="loadEvidence('${key}',this)">
+        <button onclick="document.getElementById('ev-input-${key}').click()" style="font-size:11px;padding:4px 10px;background:#1e293b;color:#94a3b8;border:1px solid #334155;border-radius:6px;cursor:pointer;">+ Screenshot</button>
+        <button id="ev-clear-${key}" onclick="clearEvidence('${key}')" style="display:none;font-size:11px;padding:4px 10px;background:#2d1515;color:#f87171;border:1px solid #7f1d1d;border-radius:6px;cursor:pointer;">✕ Remover</button>
+      </div>
+      <img src="${d.src}" alt="${d.alt}" style="width:100%;border-radius:8px;border:1px solid #1e293b;display:block;">
+      <p style="font-size:12px;color:#64748b;margin:10px 0 0;">${d.caption}</p>
+      <div id="ev-img-${key}" style="display:none;margin-top:12px;">
+        <div style="font-size:11px;color:#64748b;margin-bottom:6px;">Screenshot adicional:</div>
+        <img id="ev-preview-${key}" style="max-width:100%;border-radius:8px;border:1px solid #334155;display:block;">
+      </div>
     </div>`;
 }
 

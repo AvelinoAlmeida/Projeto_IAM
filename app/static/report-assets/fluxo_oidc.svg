@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 620" role="img" aria-labelledby="title desc">
+  <title id="title">Fluxo OIDC/OAuth2</title>
+  <desc id="desc">Diagrama de sequência do fluxo de autenticação OIDC: Browser, FastAPI e Keycloak.</desc>
+  <rect width="1100" height="620" fill="#0f172a"/>
+  <defs>
+    <marker id="arr" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <path d="M0,0 L12,4 L0,8 Z" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrb" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <path d="M0,0 L12,4 L0,8 Z" fill="#60a5fa"/>
+    </marker>
+    <marker id="arrg" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <path d="M0,0 L12,4 L0,8 Z" fill="#22c55e"/>
+    </marker>
+    <style>
+      text { font-family: Inter, Segoe UI, Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text x="50" y="52" fill="#f8fafc" font-size="32" font-weight="900">Fluxo de Autenticação OIDC / OAuth2</text>
+  <text x="50" y="82" fill="#94a3b8" font-size="16">Resource Owner Password Credentials Grant — FastAPI valida JWT emitido pelo Keycloak (RS256).</text>
+
+  <!-- Actors -->
+  <!-- Browser -->
+  <rect x="60" y="108" width="150" height="44" rx="10" fill="#1e293b" stroke="#475569"/>
+  <text x="135" y="135" fill="#f8fafc" font-size="16" font-weight="700" text-anchor="middle">Browser / Cliente</text>
+  <!-- FastAPI -->
+  <rect x="450" y="108" width="150" height="44" rx="10" fill="#052e16" stroke="#22c55e"/>
+  <text x="525" y="135" fill="#86efac" font-size="16" font-weight="700" text-anchor="middle">FastAPI :8000</text>
+  <!-- Keycloak -->
+  <rect x="840" y="108" width="160" height="44" rx="10" fill="#1e1b4b" stroke="#8b5cf6"/>
+  <text x="920" y="135" fill="#c4b5fd" font-size="16" font-weight="700" text-anchor="middle">Keycloak :8080</text>
+
+  <!-- Lifelines -->
+  <line x1="135" y1="152" x2="135" y2="590" stroke="#334155" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="525" y1="152" x2="525" y2="590" stroke="#334155" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <line x1="920" y1="152" x2="920" y2="590" stroke="#334155" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- Step 1: POST /auth/token -->
+  <line x1="136" y1="195" x2="514" y2="195" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="200" y="178" width="230" height="22" rx="4" fill="#0f172a"/>
+  <text x="315" y="193" fill="#fbbf24" font-size="13" text-anchor="middle">① POST /auth/token {user, pass}</text>
+
+  <!-- Step 2: FastAPI → KC token endpoint -->
+  <line x1="526" y1="235" x2="909" y2="235" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="600" y="218" width="240" height="22" rx="4" fill="#0f172a"/>
+  <text x="720" y="233" fill="#fbbf24" font-size="13" text-anchor="middle">② POST /realms/iam-tp/protocol/token</text>
+
+  <!-- Step 3: KC validates, issues JWT -->
+  <line x1="908" y1="275" x2="527" y2="275" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrb)"/>
+  <rect x="590" y="258" width="250" height="22" rx="4" fill="#0f172a"/>
+  <text x="715" y="273" fill="#93c5fd" font-size="13" text-anchor="middle">③ {access_token (JWT RS256), …}</text>
+
+  <!-- Step 4: FastAPI → GET /.well-known/jwks.json -->
+  <line x1="526" y1="320" x2="909" y2="320" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="590" y="303" width="255" height="22" rx="4" fill="#0f172a"/>
+  <text x="718" y="318" fill="#fbbf24" font-size="13" text-anchor="middle">④ GET /.well-known/jwks.json (cache)</text>
+
+  <!-- Step 5: KC returns public keys -->
+  <line x1="908" y1="358" x2="527" y2="358" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrb)"/>
+  <rect x="590" y="341" width="250" height="22" rx="4" fill="#0f172a"/>
+  <text x="715" y="356" fill="#93c5fd" font-size="13" text-anchor="middle">⑤ RSA Public Keys (JWKS)</text>
+
+  <!-- Step 6: FastAPI validates JWT locally -->
+  <rect x="460" y="375" width="135" height="30" rx="8" fill="#064e3b" stroke="#10b981"/>
+  <text x="527" y="394" fill="#6ee7b7" font-size="12" font-weight="700" text-anchor="middle">⑥ Valida JWT local</text>
+
+  <!-- Step 7: FastAPI checks roles/MFA -->
+  <rect x="460" y="415" width="135" height="30" rx="8" fill="#064e3b" stroke="#10b981"/>
+  <text x="527" y="434" fill="#6ee7b7" font-size="12" font-weight="700" text-anchor="middle">⑦ Verifica roles / MFA</text>
+
+  <!-- Step 8: Return token to Browser -->
+  <line x1="524" y1="465" x2="147" y2="465" stroke="#22c55e" stroke-width="2" marker-end="url(#arrg)"/>
+  <rect x="215" y="448" width="235" height="22" rx="4" fill="#0f172a"/>
+  <text x="332" y="463" fill="#86efac" font-size="13" text-anchor="middle">⑧ {access_token} → Bearer token</text>
+
+  <!-- Step 9: Browser calls protected endpoint -->
+  <line x1="136" y1="510" x2="514" y2="510" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="175" y="493" width="280" height="22" rx="4" fill="#0f172a"/>
+  <text x="315" y="508" fill="#fbbf24" font-size="13" text-anchor="middle">⑨ GET /admin/users  Authorization: Bearer …</text>
+
+  <!-- Step 10: Response -->
+  <line x1="524" y1="548" x2="147" y2="548" stroke="#22c55e" stroke-width="2" marker-end="url(#arrg)"/>
+  <rect x="215" y="531" width="220" height="22" rx="4" fill="#0f172a"/>
+  <text x="325" y="546" fill="#86efac" font-size="13" text-anchor="middle">⑩ 200 OK  {dados protegidos}</text>
+
+  <!-- Legend -->
+  <line x1="60" y1="598" x2="90" y2="598" stroke="#f59e0b" stroke-width="2" marker-end="url(#arr)"/>
+  <text x="96" y="602" fill="#94a3b8" font-size="13">Request</text>
+  <line x1="185" y1="598" x2="215" y2="598" stroke="#60a5fa" stroke-width="2" marker-end="url(#arrb)"/>
+  <text x="221" y="602" fill="#94a3b8" font-size="13">Resposta KC</text>
+  <line x1="330" y1="598" x2="360" y2="598" stroke="#22c55e" stroke-width="2" marker-end="url(#arrg)"/>
+  <text x="366" y="602" fill="#94a3b8" font-size="13">Resposta FastAPI</text>
+</svg>
