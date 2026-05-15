@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from auth import get_current_user
 from config import settings
+from keycloak_client import admin_headers, get_admin_token, get_group_id, get_role
 
 router = APIRouter(tags=["public"])
 
@@ -70,6 +71,90 @@ async def login(body: LoginRequest):
             headers={"WWW-Authenticate": "Bearer"},
         )
     data = resp.json()
+    return {
+        "access_token": data["access_token"],
+        "token_type": "bearer",
+        "expires_in": data.get("expires_in", 300),
+    }
+
+
+_DEMO_USER = "admin.demo"
+_DEMO_PASS = "Demo@1234"
+
+
+@router.post("/auth/demo-admin-token", include_in_schema=False)
+async def demo_admin_token():
+    """Cria/garante utilizador admin.demo (sem OTP) e devolve token — apenas para demonstração."""
+    admin_tkn = await get_admin_token()
+    async with httpx.AsyncClient() as client:
+        headers = admin_headers(admin_tkn)
+
+        # Verificar se admin.demo já existe
+        r = await client.get(
+            f"{settings.admin_api_url}/users",
+            headers=headers,
+            params={"username": _DEMO_USER, "exact": "true"},
+        )
+        r.raise_for_status()
+        users = r.json()
+
+        if not users:
+            # Criar utilizador sem required actions e sem OTP
+            cr = await client.post(
+                f"{settings.admin_api_url}/users",
+                headers=headers,
+                json={
+                    "username": _DEMO_USER,
+                    "email": "admin.demo@iam-tp.local",
+                    "firstName": "Admin",
+                    "lastName": "Demo",
+                    "enabled": True,
+                    "emailVerified": True,
+                    "requiredActions": [],
+                    "credentials": [{"type": "password", "value": _DEMO_PASS, "temporary": False}],
+                },
+            )
+            if cr.status_code not in (200, 201):
+                raise HTTPException(status_code=500, detail="Erro ao criar utilizador demo")
+
+            r2 = await client.get(
+                f"{settings.admin_api_url}/users",
+                headers=headers,
+                params={"username": _DEMO_USER, "exact": "true"},
+            )
+            r2.raise_for_status()
+            user_id = r2.json()[0]["id"]
+
+            role = await get_role(client, headers, "admin")
+            await client.post(
+                f"{settings.admin_api_url}/users/{user_id}/role-mappings/realm",
+                headers=headers,
+                json=[role],
+            )
+
+            group_id = await get_group_id(client, headers, "Admins")
+            await client.put(
+                f"{settings.admin_api_url}/users/{user_id}/groups/{group_id}",
+                headers=headers,
+            )
+
+        # Obter token via direct grant (sem OTP — utilizador demo não tem OTP configurado)
+        tr = await client.post(
+            settings.token_url,
+            data={
+                "grant_type": "password",
+                "client_id": settings.keycloak_client_id,
+                "client_secret": settings.keycloak_client_secret,
+                "username": _DEMO_USER,
+                "password": _DEMO_PASS,
+                "scope": "openid",
+            },
+        )
+
+    if tr.status_code != 200:
+        raise HTTPException(status_code=500, detail="Erro ao obter token para utilizador demo")
+
+    data = tr.json()
     return {
         "access_token": data["access_token"],
         "token_type": "bearer",

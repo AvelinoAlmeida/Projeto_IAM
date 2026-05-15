@@ -413,16 +413,38 @@
   <div class="card" style="padding:24px;margin-top:24px;border:1px solid #4c1d95;">
     <details>
       <summary style="cursor:pointer;font-size:14px;font-weight:600;color:#c4b5fd;display:flex;align-items:center;gap:8px;">
-        <span>🔑 Usar token externo (MFA demo — obter via Keycloak browser flow)</span>
+        <span>🔑 Token de Administrador — Demonstração para Avaliador</span>
       </summary>
       <div style="margin-top:16px;">
-        <div style="font-size:12px;color:#64748b;margin-bottom:10px;padding:10px;background:#0f172a;border-radius:6px;line-height:1.6;">
-          Para demonstrar <code style="color:#c4b5fd;">/admin/mfa-area</code> com MFA real:<br>
-          1. Abre <code style="color:#3b82f6;">http://localhost:8081/realms/iam-tp/account</code> → login com <code>admin.user</code> + TOTP<br>
-          2. Abre as DevTools (F12) → Application → Local Storage ou Network → copia o <code>access_token</code><br>
-          <strong style="color:#facc15;">Em alternativa:</strong> corre no terminal:<br>
-          <code style="color:#4ade80;font-size:11px;">curl -s -X POST http://localhost:8081/realms/iam-tp/protocol/openid-connect/token -d "grant_type=password&client_id=fastapi-client&client_secret=Admin123!&username=admin.user&password=Admin@1234" | python3 -m json.tool</code>
+
+        <!-- Opção A: avaliador sem autenticador TOTP -->
+        <div style="background:#0f172a;border:1px solid #312e81;border-radius:8px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;color:#a5b4fc;margin-bottom:6px;">Opção A — Sem autenticador TOTP (recomendada para avaliador)</div>
+          <div style="font-size:12px;color:#94a3b8;line-height:1.7;margin-bottom:10px;">
+            Cria/garante o utilizador <code style="color:#c4b5fd;">admin.demo</code> (sem OTP) via API e devolve o token automaticamente.<br>
+            Permite testar todos os endpoints <code style="color:#c4b5fd;">/admin/*</code> — incluindo JML e auditoria.<br>
+            <span style="color:#fbbf24;">Nota:</span> token sem claims MFA → <code style="color:#f87171;">/admin/mfa-area</code> retornará <strong>403</strong> (comportamento esperado e correto).
+          </div>
+          <button class="btn-primary" onclick="fetchAdminTokenForDemo()" style="width:100%;font-weight:600;">
+            Obter token admin.demo automaticamente
+          </button>
+          <div id="demo-fetch-result" style="margin-top:8px;"></div>
         </div>
+
+        <!-- Opção B: terminal com admin.user + TOTP -->
+        <details style="margin-bottom:14px;">
+          <summary style="cursor:pointer;font-size:12px;color:#64748b;padding:8px 10px;background:#0f172a;border-radius:6px;">
+            Opção B — <code style="color:#c4b5fd;">admin.user</code> com TOTP real (acesso a <code style="color:#c4b5fd;">/admin/mfa-area</code>)
+          </summary>
+          <div style="margin-top:8px;padding:10px;background:#0f172a;border-radius:6px;border-top:1px solid #1e293b;">
+            <div style="font-size:11px;color:#64748b;margin-bottom:6px;">No terminal, com o código TOTP do autenticador:</div>
+            <div style="display:flex;align-items:flex-start;gap:8px;">
+              <code id="curl-cmd-b" style="color:#4ade80;font-size:11px;line-height:1.6;flex:1;word-break:break-all;">curl -s -X POST http://localhost:8081/realms/iam-tp/protocol/openid-connect/token -d "grant_type=password&client_id=fastapi-client&client_secret=Admin123!&username=admin.user&password=Admin@1234&totp=CÓDIGO" | python3 -m json.tool</code>
+              <button class="btn-ghost" style="font-size:11px;padding:4px 10px;white-space:nowrap;" onclick="navigator.clipboard.writeText(document.getElementById('curl-cmd-b').innerText).then(()=>this.textContent='✅').catch(()=>{});setTimeout(()=>this.textContent='Copiar',1500)">Copiar</button>
+            </div>
+          </div>
+        </details>
+
         <label style="font-size:12px;color:#64748b;display:block;margin-bottom:6px;">Colar Bearer token (JWT)</label>
         <textarea class="input" id="paste-token" rows="3" placeholder="eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9..." style="font-family:monospace;font-size:11px;resize:vertical;"></textarea>
         <div style="display:flex;gap:8px;margin-top:10px;">
@@ -1500,6 +1522,20 @@ async function loadAudit() {
 function showResult(el, msg, type) {
   const cls = type === 'ok' ? 'result-ok' : type === 'err' ? 'result-err' : '';
   el.innerHTML = `<div class="${cls}" style="padding:10px;border-radius:6px;font-size:13px;">${msg}</div>`;
+}
+
+async function fetchAdminTokenForDemo() {
+  const el = document.getElementById('demo-fetch-result');
+  showResult(el, '<span class="spinner"></span> A criar/verificar admin.demo e obter token...', '');
+  try {
+    const r = await fetch(API + '/auth/demo-admin-token', { method: 'POST' });
+    const data = await readJsonResponse(r);
+    if (!r.ok) { showResult(el, '❌ ' + escapeHtml(getErrorMessage(data, 'Erro ao obter token')), 'err'); return; }
+    document.getElementById('paste-token').value = data.access_token;
+    showResult(el, '✅ Token de <strong>admin.demo</strong> pronto. Clica <strong>Usar este token</strong> para activar a sessão.', 'ok');
+  } catch (e) {
+    showResult(el, '❌ ' + escapeHtml(e.message), 'err');
+  }
 }
 
 function usePastedToken() {
